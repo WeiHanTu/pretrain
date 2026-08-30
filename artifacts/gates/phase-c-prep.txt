@@ -1,0 +1,45 @@
+gate:        phase-c-prep
+captured_at: 2026-08-30T21:31:23Z
+git_commit:  63ac3f4d034fbd4bb6adbce20daa6fcbbacd0c0b
+git_dirty:   false
+dirty_note:  tree state observed before this file was written
+python:      3.12.13
+torch:       2.13.0+cu130
+platform:    Linux aarch64
+
+$ uv sync --locked
+Resolved 48 packages in 0.52ms
+Uninstalled 1 package in 5ms
+Installed 1 package in 5.76s
+ ~ nvidia-cusparselt-cu13==0.8.1
+
+$ uv run ruff check .
+Uninstalled 1 package in 18ms
+Installed 1 package in 6.87s
+All checks passed!
+
+$ uv run ruff format --check .
+Uninstalled 1 package in 17ms
+Installed 1 package in 5.86s
+66 files already formatted
+
+$ uv run mypy src
+Uninstalled 1 package in 18ms
+Installed 1 package in 7.00s
+Success: no issues found in 31 source files
+
+$ uv run pytest -q
+Uninstalled 1 package in 17ms
+Installed 1 package in 7.22s
+........................................................................ [ 31%]
+........................................................................ [ 63%]
+........................................................................ [ 95%]
+...........                                                              [100%]
+227 passed in 26.27s
+
+$ uv run python scripts/check_repo_hygiene.py
+Uninstalled 1 package in 6ms
+Installed 1 package in 7.03s
+Repository hygiene check passed (105 tracked files).
+
+result: PASS
