@@ -46,7 +46,7 @@ from pretrainmodel.training.loop import TrainResult, build_optimizer, seed_every
 __all__ = ["PhaseResult", "run_phase", "run_resume_experiment"]
 
 
-class _SimulatedInterrupt(RuntimeError):
+class _SimulatedInterruptError(RuntimeError):
     """Raised to stop the interrupt phase at its checkpoint step.
 
     The interrupt phase runs the *same* config as the control -- an interruption
@@ -153,7 +153,7 @@ def _worker(
                     run_id=f"{phase}-ws{world_size}",
                 )
                 interrupted_at = step
-                raise _SimulatedInterrupt(f"interrupted after step {step}")
+                raise _SimulatedInterruptError(f"interrupted after step {step}")
 
         try:
             result = train(
@@ -167,7 +167,7 @@ def _worker(
                 resume_from=resume_from,
                 on_step=on_step,
             )
-        except _SimulatedInterrupt:
+        except _SimulatedInterruptError:
             # These processes stop here. The resume runs in genuinely new ones, which
             # is what makes this a recovery test rather than a loop restart.
             result = TrainResult(run_id=f"{phase}-ws{world_size}-r{rank}")
