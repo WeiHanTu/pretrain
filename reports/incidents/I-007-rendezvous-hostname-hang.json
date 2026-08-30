@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "incident_id": "I-007",
+  "title": "c10d rendezvous hangs forever when a node cannot resolve its own hostname",
+  "injected": false,
+  "created_at": "2026-08-30T21:24:00Z",
+  "run_ids": [],
+  "scope_and_topology": "Two ranks on one host via torchrun, Gloo, during Phase C launch-path rehearsal. Not multi-node evidence; the launch path is being exercised, not a network boundary crossed.",
+  "hypothesis": "None declared in advance. Phases A and B used file:// rendezvous, which works only when ranks share a filesystem; real multi-node uses TCP rendezvous, a code path that had never executed in this repository. The rehearsal existed to find its failure modes for free.",
+  "detection_signal": "The job produced no training output and did not exit, emitting c10d socket warnings on a widening retry interval: 'The hostname of the client socket cannot be retrieved. err=-3' and 'gai error: -3 - Temporary failure in name resolution'.",
+  "injection": "Not injected. The host's own hostname ('claude') is absent from /etc/hosts and unresolvable.",
+  "detection_evidence": "getent hosts $(hostname) returns nothing; /etc/hosts contains no matching entry. Retries observed at roughly 1s, 4s, 5s, 12s, 28s and 40s intervals with no terminal error. The same job launched with static rendezvous and an explicit master IP completed normally: 20 steps, world_size=2, distinct_hosts=1, multi_node=False.",
+  "diagnosis": "c10d resolves the local hostname while constructing its rendezvous store; the lookup fails and the store retries with backoff indefinitely rather than raising. Three properties make it expensive: it hangs rather than fails, so a billed instance meters the entire hang with no error to alert on; the symptom points at firewalls, MASTER_ADDR or a missing peer rather than at /etc/hosts on the machine already logged into; and init_process_group(timeout=...) does not help, because torchrun performs the lookup while building its store, before any timeout this process controls takes effect.",
+  "intervention": "Workaround: static rendezvous with an explicit master IP, which avoids the c10d store's hostname lookup. Fix 1: distributed.launch.network_preflight() checks hostname resolution before any rendezvous is attempted and refuses to launch with the remedy in the message, fatal only when the run claims distinct hosts. Fix 2: infra/gcp/startup.sh appends the hostname to /etc/hosts at boot when it does not already resolve.",
+  "verification": {
+    "oracle": "manual_inspection",
+    "result": "pass",
+    "detail": "network_preflight() reports resolves=False, fatal=True with the remedy quoted, and artifacts/cloud/preflight.json fails its hostname_resolves check."
+  },
+  "cost": { "wall_seconds_lost": 1200.0, "gpu_hours": 0.0, "estimated_usd": 0.0 },
+  "counterfactual": "Without the rehearsal this surfaces on the first paid two-node launch, when the priority is measurement, the meter is running, and every natural suspect (firewall rules, VPC routing, the peer node) is both wrong and expensive to investigate.",
+  "limitations": "Encountered in a sandboxed VM with a read-only /etc/hosts; a stock GCP image normally resolves its own hostname, so this specific trigger may not recur there, though the class of failure (rendezvous hanging rather than failing) does. The preflight verifies hostname resolution only -- not that MASTER_ADDR is reachable from a peer, that the rendezvous port is open, or that a firewall permits collectives, all of which need two real hosts and belong to Phase C. One host, CPU, Gloo; not multi-node evidence.",
+  "artifacts": ["artifacts/cloud/preflight.json", "reports/incidents/I-007-rendezvous-hostname-hang.md"]
+}

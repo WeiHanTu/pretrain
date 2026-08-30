@@ -1,0 +1,108 @@
+{
+  "automated_checks": [
+    {
+      "check": "hostname_resolves",
+      "detail": "hostname='claude' resolves=False. this node cannot resolve its own hostname 'claude' ([Errno -3] Temporary failure in name resolution). c10d rendezvous will hang indefinitely rather than fail. Fix: add '127.0.0.1 claude' to /etc/hosts, or launch with --rdzv-backend=static and an explicit --master-addr IP. Must be re-run ON EACH CLOUD NODE; a failure here hangs c10d rendezvous indefinitely rather than erroring (see reports/incidents/I-007).",
+      "ok": false
+    },
+    {
+      "check": "caps_present::configs/single_l4.toml",
+      "detail": "max_steps=2000, max_wall_seconds=7200, checkpoint_every=250",
+      "ok": true
+    },
+    {
+      "check": "checkpoint_cadence::configs/single_l4.toml",
+      "detail": "Spot instances are preempted without warning. A run with no checkpoint cadence loses everything on preemption; with one, the preemption becomes a free organic recovery test.",
+      "ok": true
+    },
+    {
+      "check": "caps_present::configs/two_node_l4.toml",
+      "detail": "max_steps=2000, max_wall_seconds=7200, checkpoint_every=100",
+      "ok": true
+    },
+    {
+      "check": "checkpoint_cadence::configs/two_node_l4.toml",
+      "detail": "Spot instances are preempted without warning. A run with no checkpoint cadence loses everything on preemption; with one, the preemption becomes a free organic recovery test.",
+      "ok": true
+    },
+    {
+      "check": "script_valid::provision.sh",
+      "detail": "exists=True syntax_ok=True (NOT executed against GCP)",
+      "ok": true
+    },
+    {
+      "check": "script_valid::teardown.sh",
+      "detail": "exists=True syntax_ok=True (NOT executed against GCP)",
+      "ok": true
+    },
+    {
+      "check": "script_valid::firewall.sh",
+      "detail": "exists=True syntax_ok=True (NOT executed against GCP)",
+      "ok": true
+    },
+    {
+      "check": "script_valid::startup.sh",
+      "detail": "exists=True syntax_ok=True (NOT executed against GCP)",
+      "ok": true
+    },
+    {
+      "check": "instance_self_destruct",
+      "detail": "Provisioning must set a GCP-enforced deadline. A guest-side shutdown timer dies with the guest and so misses the one case it exists for.",
+      "ok": true
+    },
+    {
+      "check": "no_credentials_in_artifacts",
+      "detail": "clean",
+      "ok": true
+    }
+  ],
+  "automated_passed": false,
+  "cost_note": "Budget alerts notify; they do not cap. The enforced caps are --max-run-duration with --instance-termination-action=DELETE per instance, train.max_steps and train.max_wall_seconds in the config, and running infra/gcp/teardown.sh unconditionally after every session.",
+  "gate": "phase-c-preflight",
+  "manual_all_answered": false,
+  "manual_checks": [
+    {
+      "answer": null,
+      "answered_by": null,
+      "id": "billing_upgraded",
+      "question": "Is the billing account upgraded from Free Trial to paid?",
+      "status": "unanswered",
+      "why": "The Free Trial forbids attaching GPUs at all. Upgrading also enables charges beyond the remaining credit, which is why this is a human decision."
+    },
+    {
+      "answer": null,
+      "answered_by": null,
+      "id": "gpu_quota_granted",
+      "question": "Is NVIDIA_L4_GPUS (or PREEMPTIBLE_NVIDIA_L4_GPUS) quota >= 2 in the target region?",
+      "status": "unanswered",
+      "why": "New paid accounts start at 0. Quota requests take time and are sometimes denied."
+    },
+    {
+      "answer": null,
+      "answered_by": null,
+      "id": "capacity_available",
+      "question": "Did a dry-run create succeed in the target zone?",
+      "status": "unanswered",
+      "why": "Quota is permission, not inventory. Spot L4 capacity varies by zone and hour."
+    },
+    {
+      "answer": null,
+      "answered_by": null,
+      "id": "budget_alert_configured",
+      "question": "Is a budget alert set on the billing account?",
+      "status": "unanswered",
+      "why": "Alerts NOTIFY, they do not CAP. Nothing in GCP stops spend automatically; the real cap is --max-run-duration on each instance plus teardown."
+    },
+    {
+      "answer": null,
+      "answered_by": null,
+      "id": "credit_expiry_noted",
+      "question": "Is the credit expiry date recorded? (90 days from SIGNUP, not first use)",
+      "status": "unanswered",
+      "why": "The clock starts at signup, so unused credit silently expires."
+    }
+  ],
+  "note": "Manual items are recorded as UNANSWERED rather than defaulted to ok. A preflight that silently passes checks it cannot perform converts an unknown into a false assurance at exactly the moment money starts being spent.",
+  "ready_to_provision": false,
+  "schema_version": 1
+}

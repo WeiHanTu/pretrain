@@ -37,13 +37,13 @@ a named artifact under `artifacts/` or `reports/`.
 
 | Phase | Scope | Status |
 |---|---|---|
-| Track 0 | Compute access requests (NRP / ACCESS / GCP) | Not started |
+| Track 0 | Compute access decision | **Decided** — GCP; NRP and ACCESS ruled out (`reports/access/compute_options.md`) |
 | A1 | Repo bootstrap, config schema, CI | **Complete except license choice** — `artifacts/gates/phase-a1.txt` |
 | A2 | Data layer, rank-coverage invariant, negative tests | **Complete** — `artifacts/coverage/`, `reports/incidents/I-002`, `I-003` |
 | A3 | Model, training loop, run manifest | **Complete** — `artifacts/gates/tiny-overfit.json` |
 | A4 | Seed-variance oracle | **Complete** — `artifacts/oracles/seed-band.json` |
 | B | FSDP2, DCP checkpoint + reshard | **Correctness complete** — `artifacts/oracles/exact-resume.json`, `artifacts/checkpoints/reshard-matrix.json`; GPU throughput/memory deferred to Phase C |
-| C | Real two-host execution, failure injection, scaling | Next |
+| C | Real two-host execution, failure injection, scaling | Launcher built and rehearsed locally; **awaiting GCP account actions** (`artifacts/cloud/preflight.json`) |
 | D | Portfolio release | Not started |
 
 No multi-node claim is made until an artifact captured from **distinct physical

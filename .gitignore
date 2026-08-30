@@ -35,3 +35,6 @@ terraform.tfstate.*
 # may be force-added deliberately under artifacts/.
 artifacts/generated/
 
+
+# Launch-path rehearsal output (regenerable, not evidence)
+rehearsal/

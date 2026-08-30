@@ -14,10 +14,10 @@ Do not mark an item complete based only on code existence. Its verification comm
 
 ## Track 0 — Access requests in parallel
 
-- [ ] Ask the active UCSD collaborator whether NRP/Nautilus namespace access is available.
-- [ ] Confirm whether the relevant namespace permits multi-node GPU Jobs or a PyTorch operator.
-- [ ] Assess current eligibility for an ACCESS Explore request and obtain the required advisor letter if applicable.
-- [ ] Do **not** start the GCP trial clock until Phase A passes.
+- [!] Ask the active UCSD collaborator whether NRP/Nautilus namespace access is available. RULED OUT: students are added to a namespace by their supervisor; the author has graduated and does not wish to ask his former advisor.
+- [!] Confirm whether the relevant namespace permits multi-node GPU Jobs or a PyTorch operator. N/A — no namespace will be requested.
+- [!] Assess current eligibility for an ACCESS Explore request and obtain the required advisor letter if applicable. RULED OUT: a graduate-student PI needs an advisor letter of collaboration — same constraint as NRP.
+- [x] Do **not** start the GCP trial clock until Phase A passes. Phases A *and* B were both completed before signup, so the 90-day window is still unspent.
 
 Evidence:
 
@@ -149,11 +149,25 @@ Exact same-world-size resume passes; 1↔2 DCP reshard passes; artifacts validat
 
 - [ ] User confirms GCP activation/paid-billing risk or NRP namespace.
 - [ ] Confirm two-GPU quota/capacity; do not assume it.
-- [ ] Configure budget alerts and document that alerts do not cap spend.
-- [ ] Validate VM expiry/deletion and cleanup commands without GPUs.
-- [ ] Set `max_steps`, maximum wall time and checkpoint destination.
+- [~] Configure budget alerts and document that alerts do not cap spend. Documented in `reports/access/compute_options.md` and `artifacts/cloud/preflight.json`; *configuring* the alert is a user action and is tracked as UNANSWERED.
+- [~] Validate VM expiry/deletion and cleanup commands without GPUs. `infra/gcp/{provision,startup,firewall,teardown}.sh` written and syntax-checked, with GCP-enforced `--max-run-duration` + `--instance-termination-action=DELETE` rather than a guest-side timer. NOT executed against the live API.
+- [x] Set `max_steps`, maximum wall time and checkpoint destination. Asserted by `scripts/preflight_cloud.py`.
 
 Evidence: `artifacts/cloud/preflight.json`.
+
+### C-prep. Launch-path rehearsal ($0, done before provisioning)
+
+Phases A and B used `file://` rendezvous, which works only when all ranks share a
+filesystem. Real multi-node uses TCP. That path is now built and rehearsed locally so
+the first paid hour is spent measuring, not debugging.
+
+- [x] Add `distributed/launch.py`: env:// rendezvous, torchrun-compatible.
+- [x] Add `distributed/entrypoint.py` runnable under `torchrun`; asserts topology
+      **before** the first optimizer step.
+- [x] Rehearse the real launcher locally (`--rehearsal`), honestly labelled as a
+      single-host launch-path exercise and never as multi-node evidence.
+- [x] Fail fast on an unresolvable hostname rather than hanging — see
+      `reports/incidents/I-007-rendezvous-hostname-hang.md`.
 
 ### C1. Two-host NCCL smoke test
 
