@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/WeiHanTu/pretrain/schemas/coverage.schema.json",
+  "title": "Rank-coverage artifact",
+  "description": "Result of the exactly-once sample consumption invariant. spec.md 4.4.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "generated_at", "world_size", "epoch", "sampler",
+    "expected_count", "consumed_count", "passed",
+    "duplicated_ids", "missing_ids", "unexpected_ids", "rank_overlaps"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "world_size": { "type": "integer", "minimum": 1 },
+    "epoch": { "type": "integer", "minimum": 0 },
+    "sampler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seed", "shuffle", "drop_last"],
+      "properties": {
+        "seed": { "type": "integer" },
+        "shuffle": { "type": "boolean" },
+        "drop_last": { "type": "boolean" }
+      }
+    },
+    "expected_count": { "type": "integer", "minimum": 0 },
+    "consumed_count": { "type": "integer", "minimum": 0 },
+    "per_rank_counts": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0 }
+    },
+    "passed": { "type": "boolean" },
+    "duplicated_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Sample IDs consumed more than once across the union of ranks."
+    },
+    "missing_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Expected sample IDs that no rank consumed."
+    },
+    "unexpected_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Consumed IDs that are not in the expected epoch set."
+    },
+    "rank_overlaps": {
+      "type": "array",
+      "description": "Pairs of ranks that consumed at least one identical sample ID.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rank_a", "rank_b", "shared_ids"],
+        "properties": {
+          "rank_a": { "type": "integer", "minimum": 0 },
+          "rank_b": { "type": "integer", "minimum": 0 },
+          "shared_ids": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "truncated_id_lists": {
+      "type": "boolean",
+      "description": "True when offending-ID lists were capped for artifact size; counts remain exact."
+    },
+    "notes": { "type": "string" }
+  }
+}

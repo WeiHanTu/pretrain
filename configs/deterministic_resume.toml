@@ -1,0 +1,54 @@
+# Deterministic same-world-size resume oracle (spec.md 8.1).
+#
+# Every setting here is load-bearing for the *exact equality* claim:
+#   - fp32                      : bf16 reductions are not associative
+#   - deterministic_algorithms  : forbids nondeterministic kernel selection
+#   - async_checkpoint = false  : the checkpoint must be a synchronous barrier
+#   - shuffle = false           : fixed data order removes sampler variance
+# Weakening any of them turns an exact-equality gate into a tolerance comparison.
+# If this run cannot be made bit-exact, the gate FAILS and the cause is diagnosed;
+# the tolerance is never loosened to make it pass.
+
+[run]
+name = "deterministic_resume"
+seed = 7
+formal = true
+
+[data]
+root = "data/processed/synthetic/v1"
+context_steps = 12
+horizon_steps = 12
+num_sensors = 32
+num_features = 1
+shuffle = false
+num_workers = 0
+
+[model]
+d_model = 64
+num_layers = 2
+num_heads = 4
+max_sensors = 64
+dropout = 0.0
+
+[optim]
+lr = 1e-3
+warmup_steps = 4
+total_steps = 20
+
+[train]
+micro_batch_size = 4
+max_steps = 20
+max_wall_seconds = 600
+log_every = 1
+dtype = "fp32"
+
+[checkpoint]
+dir = "checkpoints/deterministic_resume"
+every_steps = 10
+
+[distributed]
+backend = "gloo"
+
+[determinism]
+deterministic_algorithms = true
+async_checkpoint = false

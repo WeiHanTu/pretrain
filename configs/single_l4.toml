@@ -1,0 +1,50 @@
+# Single-GPU reference run (Phase B).  Correctness and throughput baseline that
+# every multi-GPU and multi-node number is compared against.
+#
+# PLANNED: not yet executed.  Model sizing targets the 20M-50M band from
+# spec.md 5.1; the exact parameter count is emitted into the run manifest.
+
+[run]
+name = "single_l4"
+seed = 1234
+formal = true
+
+[data]
+root = "data/processed/largest/v1"
+context_steps = 12
+horizon_steps = 12
+num_sensors = 1024
+num_features = 1
+
+[model]
+d_model = 384
+num_layers = 8
+num_heads = 6
+max_sensors = 4096
+dropout = 0.0
+
+[optim]
+lr = 6e-4
+warmup_steps = 200
+total_steps = 4000
+
+[train]
+micro_batch_size = 8
+grad_accum_steps = 2
+max_steps = 2000
+max_wall_seconds = 7200
+eval_every = 250
+log_every = 20
+dtype = "bf16"
+
+[checkpoint]
+dir = "checkpoints/single_l4"
+every_steps = 250
+
+[distributed]
+backend = "nccl"
+expect_world_size = 1
+
+[cost]
+sku = "gcp-g2-standard-4-spot-l4"
+rate_usd_per_gpu_hour = 0.0

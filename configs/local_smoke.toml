@@ -1,0 +1,41 @@
+# Fast CPU smoke configuration.
+#
+# NOT a formal run: the model is deliberately far below the 20M-50M band that
+# spec.md 5.1 requires, so its artifacts are never citable as model evidence.
+# Its job is to exercise the full code path in seconds on a laptop.
+
+[run]
+name = "local_smoke"
+seed = 1234
+formal = false
+
+[data]
+root = "data/processed/synthetic/v1"
+context_steps = 12
+horizon_steps = 12
+num_sensors = 32
+num_features = 1
+
+[model]
+d_model = 64
+num_layers = 2
+num_heads = 4
+max_sensors = 64
+
+[optim]
+lr = 3e-4
+warmup_steps = 5
+total_steps = 50
+
+[train]
+micro_batch_size = 4
+max_steps = 20
+max_wall_seconds = 300
+log_every = 5
+
+[checkpoint]
+dir = "checkpoints/local_smoke"
+every_steps = 10
+
+[distributed]
+backend = "gloo"

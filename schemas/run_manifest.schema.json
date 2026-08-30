@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/WeiHanTu/pretrain/schemas/run_manifest.schema.json",
+  "title": "Run manifest",
+  "description": "Immutable record emitted by every run. spec.md 10.3. A number that cannot be traced to a manifest is not evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "run_id", "run_name", "formal", "status",
+    "started_at", "git", "config_hash", "config", "software", "topology"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "run_name": { "type": "string", "minLength": 1 },
+    "formal": {
+      "type": "boolean",
+      "description": "Whether this run's artifacts may be cited as evidence. Formal runs refuse a dirty tree or unverified data manifest."
+    },
+    "status": { "enum": ["started", "completed", "failed", "aborted"] },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": { "type": ["string", "null"], "format": "date-time" },
+    "duration_seconds": { "type": ["number", "null"], "minimum": 0 },
+    "git": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "dirty"],
+      "properties": {
+        "commit": { "type": "string" },
+        "branch": { "type": ["string", "null"] },
+        "dirty": { "type": "boolean" }
+      }
+    },
+    "config_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "config": { "type": "object" },
+    "data_manifest_hash": { "type": ["string", "null"] },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "parameter_count": { "type": "integer", "minimum": 0 },
+        "trainable_parameter_count": { "type": "integer", "minimum": 0 },
+        "architecture": { "type": "string" }
+      }
+    },
+    "software": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["python", "torch"],
+      "properties": {
+        "python": { "type": "string" },
+        "torch": { "type": "string" },
+        "cuda": { "type": ["string", "null"] },
+        "nccl": { "type": ["string", "null"] },
+        "platform": { "type": "string" }
+      }
+    },
+    "topology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["backend", "world_size", "hosts", "distinct_hosts"],
+      "properties": {
+        "backend": { "type": "string" },
+        "world_size": { "type": "integer", "minimum": 1 },
+        "node_count": { "type": "integer", "minimum": 1 },
+        "gpus_per_node": { "type": "integer", "minimum": 0 },
+        "hosts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Hashed or plain hostnames, one per rank, in rank order."
+        },
+        "distinct_hosts": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Observed count of unique hosts. A multi-node claim requires this to be >= 2."
+        },
+        "rendezvous": { "type": ["string", "null"] },
+        "global_batch_size": { "type": "integer", "minimum": 1 },
+        "grad_accum_steps": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "hardware": { "type": "object", "additionalProperties": true },
+    "metrics": { "type": "object", "additionalProperties": true },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "bytes"],
+        "properties": {
+          "path": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "bytes": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sku", "rate_usd_per_gpu_hour", "gpu_hours", "estimated_usd"],
+      "properties": {
+        "sku": { "type": "string" },
+        "rate_usd_per_gpu_hour": { "type": "number", "minimum": 0 },
+        "gpu_hours": { "type": "number", "minimum": 0 },
+        "estimated_usd": { "type": "number", "minimum": 0 },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}

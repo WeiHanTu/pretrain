@@ -1,0 +1,60 @@
+[project]
+name = "pretrainmodel"
+version = "0.1.0"
+description = "Multi-node traffic pretraining incident lab"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Installed from the default PyPI index.  On linux-aarch64 this wheel declares
+    # CUDA runtime dependencies even on hosts with no NVIDIA GPU; the usual fix is
+    # PyTorch's variant index (download.pytorch.org/whl/cpu), which this development
+    # sandbox cannot reach.  Tracked as a known issue in plan.md rather than worked
+    # around silently -- GPU hosts in Phase B/C install the matching CUDA build.
+    "torch>=2.5",
+    "numpy>=1.26",
+    "jsonschema>=4.21",
+]
+
+[project.scripts]
+pretrainmodel = "pretrainmodel.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pretrainmodel"]
+
+[tool.uv]
+link-mode = "copy"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["jsonschema.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "distributed: multi-process Gloo tests",
+    "slow: longer-running integration tests",
+]

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/WeiHanTu/pretrain/schemas/incident.schema.json",
+  "title": "Incident report",
+  "description": "Machine-readable sidecar for a reports/incidents/*.md report. spec.md 10.4. Every section is required so a report cannot silently omit its limitations or its counterfactual.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "incident_id", "title", "injected", "created_at",
+    "scope_and_topology", "hypothesis", "detection_signal", "injection",
+    "detection_evidence", "diagnosis", "intervention", "verification",
+    "cost", "counterfactual", "limitations"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "incident_id": { "type": "string", "pattern": "^I-[0-9]{3}[a-z]?$" },
+    "title": { "type": "string", "minLength": 1 },
+    "injected": {
+      "type": "boolean",
+      "description": "True for a deliberately induced failure. An injected incident is an experiment and must never be described as an organic production incident."
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "run_ids": { "type": "array", "items": { "type": "string" } },
+    "scope_and_topology": { "type": "string", "minLength": 1 },
+    "hypothesis": { "type": "string", "minLength": 1 },
+    "detection_signal": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Declared BEFORE the injection. Choosing the signal after seeing the failure proves nothing."
+    },
+    "injection": { "type": "string", "minLength": 1 },
+    "detection_evidence": { "type": "string", "minLength": 1 },
+    "diagnosis": { "type": "string", "minLength": 1 },
+    "intervention": { "type": "string", "minLength": 1 },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["oracle", "result"],
+      "properties": {
+        "oracle": { "enum": ["exact_equality", "seed_variance_band", "invariant_assertion", "manual_inspection"] },
+        "result": { "enum": ["pass", "fail", "inconclusive"] },
+        "detail": { "type": "string" }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "wall_seconds_lost": { "type": "number", "minimum": 0 },
+        "gpu_hours": { "type": "number", "minimum": 0 },
+        "estimated_usd": { "type": "number", "minimum": 0 }
+      }
+    },
+    "counterfactual": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What would have happened with this control absent."
+    },
+    "limitations": { "type": "string", "minLength": 1 },
+    "artifacts": { "type": "array", "items": { "type": "string" } }
+  }
+}

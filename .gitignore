@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+
+# IDE / OS
+.idea/
+.DS_Store
+
+# Data and generated training state
+data/raw/
+data/processed/
+checkpoints/
+runs/
+logs/
+*.ckpt
+*.pt
+*.pth
+
+# Credentials and local cloud state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+service-account*.json
+terraform.tfstate
+terraform.tfstate.*
+.terraform/
+
+# Large/generated artifacts are ignored by default. Small reviewed evidence
+# may be force-added deliberately under artifacts/.
+artifacts/generated/
+

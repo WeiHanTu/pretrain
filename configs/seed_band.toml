@@ -1,0 +1,44 @@
+# Control run for the statistical oracle (spec.md 8.2).
+#
+# Three uninterrupted runs of this config, varying only run.seed, define the
+# variance band that any BF16 / async / changed-world-size resume is later judged
+# against.  The band MUST be frozen before those experiments are run, otherwise
+# the pass rule is chosen after seeing the result and proves nothing.
+
+[run]
+name = "seed_band"
+seed = 1
+formal = true
+
+[data]
+root = "data/processed/synthetic/v1"
+context_steps = 12
+horizon_steps = 12
+num_sensors = 32
+num_features = 1
+shuffle = true
+
+[model]
+d_model = 64
+num_layers = 2
+num_heads = 4
+max_sensors = 64
+
+[optim]
+lr = 1e-3
+warmup_steps = 10
+total_steps = 100
+
+[train]
+micro_batch_size = 4
+max_steps = 100
+max_wall_seconds = 900
+log_every = 1
+dtype = "fp32"
+
+[checkpoint]
+dir = "checkpoints/seed_band"
+every_steps = 50
+
+[distributed]
+backend = "gloo"
