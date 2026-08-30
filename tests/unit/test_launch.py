@@ -134,3 +134,79 @@ def test_network_preflight_reports_hostname_resolution() -> None:
 
 def test_network_preflight_is_not_fatal_when_not_required() -> None:
     assert network_preflight(require_hostname=False).fatal is False
+
+
+# --------------------------------------------------------------------------- #
+# Region awareness
+# --------------------------------------------------------------------------- #
+
+
+def test_cross_region_run_marks_throughput_as_incomparable() -> None:
+    """A WAN-spanning run's scaling numbers describe the link, not the code.
+
+    Correctness evidence from such a run is fully valid -- two regions is a
+    *stronger* network boundary than one zone -- which is exactly why the artifact
+    must distinguish the two rather than leave it to whoever reads the number later.
+    """
+    from pretrainmodel.distributed.topology import Topology
+
+    topo = Topology(
+        backend="nccl",
+        rank=0,
+        local_rank=0,
+        world_size=2,
+        hosts=["a1b2c3", "d4e5f6"],
+        distinct_hosts=2,
+        node_count=2,
+        gpus_per_node=1,
+        zones=["us-west3-a", "us-west4-a"],
+        regions=["us-west3", "us-west4"],
+        distinct_regions=2,
+    )
+    assert topo.is_multi_node is True, "two regions is still genuinely multi-node"
+    assert topo.spans_regions is True
+    assert topo.throughput_numbers_comparable is False
+    payload = topo.to_dict()
+    assert "throughput_warning" in payload
+    assert "NOT this" in payload["throughput_warning"]
+    assert (
+        "Correctness and recovery evidence from this run is unaffected"
+        in (payload["throughput_warning"])
+    )
+
+
+def test_same_region_run_carries_no_warning() -> None:
+    from pretrainmodel.distributed.topology import Topology
+
+    topo = Topology(
+        backend="nccl",
+        rank=0,
+        local_rank=0,
+        world_size=2,
+        hosts=["a1b2c3", "d4e5f6"],
+        distinct_hosts=2,
+        node_count=2,
+        gpus_per_node=1,
+        zones=["us-central1-a", "us-central1-a"],
+        regions=["us-central1", "us-central1"],
+        distinct_regions=1,
+    )
+    assert topo.spans_regions is False
+    assert topo.throughput_numbers_comparable is True
+    assert "throughput_warning" not in topo.to_dict()
+
+
+def test_region_is_derived_from_zone() -> None:
+    from pretrainmodel.distributed.topology import _region_of
+
+    assert _region_of("us-west4-a") == "us-west4"
+    assert _region_of("europe-west1-b") == "europe-west1"
+    assert _region_of(None) is None
+    assert _region_of("unknown") == "unknown"
+
+
+def test_instance_zone_returns_none_off_gcp() -> None:
+    """Must fall through fast rather than blocking a launch on an unreachable host."""
+    from pretrainmodel.distributed.topology import instance_zone
+
+    assert instance_zone() is None
