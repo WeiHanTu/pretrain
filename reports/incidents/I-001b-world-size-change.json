@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "incident_id": "I-001b",
+  "title": "Checkpoint resharding across a world-size change",
+  "injected": true,
+  "created_at": "2026-08-30T11:22:00Z",
+  "run_ids": [],
+  "scope_and_topology": "FSDP2 over an explicit CPU DeviceMesh, Gloo, one host. Save under one world size and load under another across 1->2, 2->1, 2->4 and 4->2. 20 steps, checkpoint at step 10. Local multi-process, NOT multi-node evidence.",
+  "hypothesis": "Node loss is the normal operational scenario: a job dies and returns at whatever capacity is available. Resuming at a different world size must continue over the remaining data without replaying or skipping any of it, and cannot be bit-exact because both the collective reduction order and the per-rank RNG change.",
+  "detection_signal": "Declared before the experiment: (1) DCP loads the sharded state at the new world size and the shard layout actually changes, since a replicated load would not be resharding; (2) the union of samples consumed before and after obeys the exactly-once invariant over the consumed prefix of the epoch; (3) the exact-equality oracle refuses to run rather than passing or failing.",
+  "injection": "resume_world_size != control_world_size; nothing else changed.",
+  "detection_evidence": "artifacts/checkpoints/reshard-matrix.json: all four reshards loaded, coverage passed, and the exact oracle refused. Per-rank resident parameter fraction tracks 1/world_size exactly (1.000 -> 0.500, 0.500 -> 1.000, 0.500 -> 0.250, 0.250 -> 0.500), which is the evidence that state is genuinely partitioned rather than replicated.",
+  "diagnosis": "Two design consequences fell out and both are load-bearing. First, RNG continuity cannot survive a reshard: per-rank RNG state has no entry for ranks that did not exist at save time, so the loader reseeds deterministically from (seed, step, rank) and reports rng_continuity=False; compare_exact raises OracleNotApplicableError on that flag, so the code cannot be talked into certifying bit-exactness. Second, the epoch permutation must not depend on world size, otherwise the reshard would silently reshuffle the epoch underneath the resume and exactly-once would not be well defined across the boundary. Separately, drop_last makes epoch membership world-size dependent (246 usable at world size 2, 244 at world size 4), so coverage compares against the consumed prefix of the shared order.",
+  "intervention": "None required; the reshard path works and the guard rails hold.",
+  "verification": {
+    "oracle": "invariant_assertion",
+    "result": "pass",
+    "detail": "Exactly-once coverage held after all four reshards, and the exact oracle refused every case as required."
+  },
+  "cost": { "wall_seconds_lost": 90.0, "gpu_hours": 0.0, "estimated_usd": 0.0 },
+  "counterfactual": "Without the coverage invariant, a reshard that resumed every rank at the same per-rank cursor would replay or skip a world-size-dependent slice of the epoch and report nothing. Without the refusal, a resharded run compared under an exact oracle would report fail, and the natural next move -- widening a tolerance until it passes -- would produce a meaningless equivalence claim backed by a number.",
+  "limitations": "One host, CPU, Gloo; NOT multi-node evidence, and resharding across physical hosts is Phase C. Loss trajectories are NOT compared across the reshard: changing world size with fixed grad_accum_steps changes the global batch size, which changes the optimisation trajectory for real reasons, so judging against a seed-variance band built at a different global batch would conflate the two effects. A like-for-like comparison requires holding the global batch constant by compensating grad_accum_steps, which is itself a config change and a separate experiment. Synthetic fixtures, so no model-quality claim follows.",
+  "artifacts": ["artifacts/checkpoints/reshard-matrix.json", "reports/incidents/I-001b-world-size-change.md"]
+}

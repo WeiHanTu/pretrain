@@ -135,3 +135,84 @@ def test_seed_band_control_runs_are_traceable() -> None:
         data = json.loads(manifest.read_text())
         assert data["config_hash"]
         assert data["formal"] is True, "a control run backing an oracle must be formal"
+
+
+# --------------------------------------------------------------------------- #
+# Phase B oracles
+# --------------------------------------------------------------------------- #
+
+EXACT_PATH = REPO_ROOT / "artifacts" / "oracles" / "exact-resume.json"
+RESHARD_PATH = REPO_ROOT / "artifacts" / "checkpoints" / "reshard-matrix.json"
+
+
+@pytest.mark.skipif(not EXACT_PATH.exists(), reason="B3 oracle not yet run")
+def test_exact_resume_artifact_includes_negative_controls() -> None:
+    """A gate only ever shown passing is not a gate."""
+    payload = json.loads(EXACT_PATH.read_text())
+    assert payload["passed"] is True
+    by_defect = {c["resume_defect"]: c for c in payload["cases"]}
+    assert by_defect["none"]["actual"] == "pass"
+    assert by_defect["none"]["num_differences"] == 0
+    for defect in ("reset_optimizer", "ignore_loader_state"):
+        assert by_defect[defect]["actual"] == "fail", f"{defect} was not detected"
+        assert by_defect[defect]["num_differences"] > 0
+
+
+def _exact_payload() -> dict[str, Any]:
+    data: dict[str, Any] = json.loads(EXACT_PATH.read_text())
+    return data
+
+
+@pytest.mark.skipif(not EXACT_PATH.exists(), reason="B3 oracle not yet run")
+def test_exact_resume_defects_have_distinguishable_signatures() -> None:
+    """Which sub-check fails localises the bug, which is the point of the gate."""
+    by_defect = {c["resume_defect"]: c for c in _exact_payload()["cases"]}
+    # Optimizer state lost: the data stream is fine, the trajectory is not.
+    assert by_defect["reset_optimizer"]["sample_id_match"] is True
+    assert by_defect["reset_optimizer"]["loss_match"] is False
+    # Loader cursor lost: the data stream itself diverges.
+    assert by_defect["ignore_loader_state"]["sample_id_match"] is False
+
+
+@pytest.mark.skipif(not EXACT_PATH.exists(), reason="B3 oracle not yet run")
+def test_exact_resume_declares_its_constraints_and_scope() -> None:
+    payload = _exact_payload()
+    assert payload["constraints"]["dtype"] == "fp32"
+    assert payload["constraints"]["deterministic_algorithms"] is True
+    assert payload["constraints"]["async_checkpoint"] is False
+    assert "NOT multi-node evidence" in payload["limitations"]
+
+
+@pytest.mark.skipif(not RESHARD_PATH.exists(), reason="B4 experiment not yet run")
+def test_reshard_matrix_refuses_the_exact_oracle_everywhere() -> None:
+    payload = json.loads(RESHARD_PATH.read_text())
+    assert payload["all_refused_exact_oracle"] is True
+    seen = {(c["from_world_size"], c["to_world_size"]) for c in payload["cases"]}
+    assert {(1, 2), (2, 1), (2, 4), (4, 2)} <= seen
+    for case in payload["cases"]:
+        assert case["exact_oracle_refused"] is True
+        assert case["rng_continuity"] is False
+        assert case["coverage_after_resume_passed"] is True
+
+
+@pytest.mark.skipif(not RESHARD_PATH.exists(), reason="B4 experiment not yet run")
+def test_reshard_actually_changed_the_shard_layout() -> None:
+    """Loading replicated state at a new world size would not be resharding."""
+    payload = json.loads(RESHARD_PATH.read_text())
+    for case in payload["cases"]:
+        before = case["shard_local_fraction_before"]
+        after = case["shard_local_fraction_after"]
+        assert before != after, (
+            f"{case['from_world_size']}->{case['to_world_size']} did not reshard"
+        )
+        assert after == pytest.approx(1.0 / case["to_world_size"], rel=0.05)
+
+
+@pytest.mark.skipif(not RESHARD_PATH.exists(), reason="B4 experiment not yet run")
+def test_reshard_artifact_discloses_the_global_batch_confound() -> None:
+    """The artifact must say why loss is not compared across a reshard."""
+    payload = json.loads(RESHARD_PATH.read_text())
+    note = payload["note_loss_comparison"]
+    assert "global batch" in note
+    assert "NOT compared" in note
+    assert "NOT multi-node evidence" in payload["limitations"]

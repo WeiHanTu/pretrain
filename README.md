@@ -20,9 +20,9 @@ dataset exist to make distributed failures real and reproducible.
 |---|---|---|
 | 1 | Every sample is consumed exactly once per logical epoch | Rank-coverage invariant (multiset equality) |
 | 2 | Model, optimizer, scheduler, RNG and data cursor all resume | Checkpoint contract test |
-| 3 | A deterministic same-world-size resume is **bit-exact** | Exact-equality oracle (FP32, deterministic kernels) |
+| 3 | A deterministic same-world-size resume is **bit-exact** | Exact-equality oracle — **verified**, 186 tensors, 0 differences |
 | 4 | A BF16 / changed-world-size resume is **statistically equivalent** | Seed-variance band, declared *before* the experiment |
-| 5 | Checkpoints load at a different world size | DCP reshard matrix |
+| 5 | Checkpoints load at a different world size | DCP reshard matrix — **verified** 1↔2, 2↔4 on CPU/Gloo |
 | 6 | Injected failures are detected and produce actionable evidence | Incident suite I-001 … I-005 |
 
 Claims 3 and 4 are deliberately separate. Bit-exactness is achievable only under
@@ -42,8 +42,8 @@ a named artifact under `artifacts/` or `reports/`.
 | A2 | Data layer, rank-coverage invariant, negative tests | **Complete** — `artifacts/coverage/`, `reports/incidents/I-002`, `I-003` |
 | A3 | Model, training loop, run manifest | **Complete** — `artifacts/gates/tiny-overfit.json` |
 | A4 | Seed-variance oracle | **Complete** — `artifacts/oracles/seed-band.json` |
-| B | GPU FSDP2, DCP checkpoint + reshard | Next |
-| C | Real two-host execution, failure injection, scaling | Not started |
+| B | FSDP2, DCP checkpoint + reshard | **Correctness complete** — `artifacts/oracles/exact-resume.json`, `artifacts/checkpoints/reshard-matrix.json`; GPU throughput/memory deferred to Phase C |
+| C | Real two-host execution, failure injection, scaling | Next |
 | D | Portfolio release | Not started |
 
 No multi-node claim is made until an artifact captured from **distinct physical

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "incident_id": "I-006",
+  "title": "FSDP2 pre-backward hook dropped by a view-returning forward",
+  "injected": false,
+  "created_at": "2026-08-30T11:05:00Z",
+  "run_ids": [],
+  "scope_and_topology": "Two Gloo ranks on one host, FSDP2 over a CPU DeviceMesh during Phase B bring-up. Not multi-node evidence.",
+  "hypothesis": "None declared in advance; this was not an experiment. A latent defect in this repository's own model was surfaced by a framework diagnostic.",
+  "detection_signal": "An unsolicited UserWarning from torch.distributed.fsdp on the first sharded forward pass, stating that the wrapped module returned a view tensor and that an in-place op on it would silently drop the pre-backward hook and skip the all-gather.",
+  "injection": "Not injected. SpatiotemporalTransformer.forward returned the result of .permute(), which is a view.",
+  "detection_evidence": "The warning fired on every rank on the first fully_shard forward during Phase B bring-up and does not appear after the fix.",
+  "diagnosis": "The failure is conditional and silent: nothing fails at the point of the view, the corruption requires a later in-place op, and the symptom is wrong gradient values rather than a crash, shape error or NaN. On a single GPU there is no all-gather to skip and the bug does not exist, so it would have appeared only under sharded execution and presented as the multi-node run converging worse than the single-GPU reference, a symptom with several plausible and wrong explanations.",
+  "intervention": "Append .contiguous() to the forward's return value so no downstream in-place op can detach the hook. Documented in-line as load-bearing, since .contiguous() reads like a performance tweak and would otherwise be a tempting deletion.",
+  "verification": {
+    "oracle": "exact_equality",
+    "result": "pass",
+    "detail": "The bit-exact resume oracle runs against the fixed model under FSDP2 and passes with zero differences across 186 tensors. This establishes a self-consistent reproducible sharded trajectory; it does not by itself prove the bug is gone, since the oracle compares two runs of the same code."
+  },
+  "cost": { "wall_seconds_lost": 600.0, "gpu_hours": 0.0, "estimated_usd": 0.0 },
+  "counterfactual": "Had the warning been suppressed or ignored, the defect would have survived until a model change introduced an in-place op on the output, at which point gradients would have been quietly wrong on sharded runs only. The natural debugging path leads away from the cause, and the single-GPU reference would have looked perfect throughout.",
+  "limitations": "Found by reading a framework warning, not by a detector this project built; no credit is claimed for the detection mechanism. The fix is verified by absence of the warning and by the bit-exactness oracle passing; a direct test asserting gradient equality between sharded and unsharded execution is NOT implemented and would be stronger evidence. One host, CPU, Gloo; not multi-node evidence.",
+  "artifacts": ["reports/incidents/I-006-fsdp2-view-tensor.md"]
+}

@@ -1,6 +1,6 @@
 # Implementation and Verification Plan
 
-**Overall status:** Phase A complete (A1-A4 verified with captured evidence). Phase B not started.  
+**Overall status:** Phase A complete. Phase B *correctness* complete (B1-B4 verified on CPU/Gloo with captured evidence); Phase B *performance* measurements deferred to GPU hardware. Phase C not started.  
 **Planning principle:** Finish the three-week defensible minimum before adding model novelty.
 
 ## Status vocabulary
@@ -101,23 +101,23 @@ All A1–A4 checks pass. Only then may the user start/activate GCP credit or sch
 
 ### B1. FSDP2 integration
 
-- [ ] Add explicit DeviceMesh construction.
-- [ ] Shard Transformer blocks and root module.
-- [ ] Verify effective global batch and gradient accumulation.
-- [ ] Capture single-GPU and local multi-GPU memory/throughput where available.
+- [x] Add explicit DeviceMesh construction.
+- [x] Shard Transformer blocks and root module.
+- [x] Verify effective global batch and gradient accumulation.
+- [!] Capture single-GPU and local multi-GPU memory/throughput where available. BLOCKED: no GPU available locally. Deferred to Phase C hardware; this is a *measurement*, not a correctness gate, and does not block B2-B4.
 
 ### B2. Distributed checkpoint contract
 
-- [ ] Save/load model and optimizer with DCP.
-- [ ] Persist scheduler, step, RNG, sampler cursor and manifest metadata.
-- [ ] Add atomic complete-marker semantics.
-- [ ] Reject intentionally interrupted/incomplete checkpoint.
+- [x] Save/load model and optimizer with DCP.
+- [x] Persist scheduler, step, RNG, sampler cursor and manifest metadata.
+- [x] Add atomic complete-marker semantics.
+- [x] Reject intentionally interrupted/incomplete checkpoint.
 
 ### B3. Deterministic same-world-size resume
 
-- [ ] Run uninterrupted deterministic FP32 control for 20 steps.
-- [ ] Run 10 steps, checkpoint, resume to step 20.
-- [ ] Compare parameters, optimizer, scheduler, losses and sample IDs exactly.
+- [x] Run uninterrupted deterministic FP32 control for 20 steps.
+- [x] Run 10 steps, checkpoint, resume to step 20.
+- [x] Compare parameters, optimizer, scheduler, losses and sample IDs exactly.
 
 Acceptance: zero differences. Any difference blocks the gate pending diagnosis.
 
@@ -128,11 +128,11 @@ Evidence:
 
 ### B4. Changed-world-size resume
 
-- [ ] Verify 1→2 reshard and resume.
-- [ ] Verify 2→1 reshard and resume.
-- [ ] Verify post-resume rank coverage.
-- [ ] Apply the frozen statistical oracle.
-- [ ] Attempt 2→4 only if hardware is available without delaying Phase C.
+- [x] Verify 1→2 reshard and resume.
+- [x] Verify 2→1 reshard and resume.
+- [x] Verify post-resume rank coverage.
+- [~] Apply the frozen statistical oracle. DEFERRED with cause: resharding N→M at fixed `grad_accum_steps` changes the global batch size, so comparing the resumed loss against a band built at a different global batch would conflate the reshard with the batch-size change. A like-for-like comparison requires compensating `grad_accum_steps` to hold the global batch constant, which is itself a config change and therefore a separate experiment. Recorded in `artifacts/checkpoints/reshard-matrix.json` under `note_loss_comparison`.
+- [x] Attempt 2→4 only if hardware is available without delaying Phase C. Done on CPU/Gloo: 2→4 and 4→2 both verified.
 
 Evidence:
 
@@ -231,6 +231,25 @@ Evidence: `artifacts/gates/release.txt` plus a clean, reviewable repository stat
 - [ ] 2→4 world-size resume.
 - [ ] JAX implementation of one small correctness experiment.
 - [ ] Conservation metric only after directed topology and boundary-flow requirements are met.
+
+## Finding: Phase B correctness does not need a GPU
+
+`fully_shard` (FSDP2) works over a Gloo CPU `DeviceMesh` and produces genuinely
+sharded DTensor parameters — a (32, 16) weight becomes (16, 16) local on 2 ranks,
+and per-rank resident fraction tracks `1 / world_size` exactly. `torch.distributed
+.checkpoint` saves and loads that sharded state, including across a world-size
+change.
+
+Phase B therefore splits along a line the original plan did not draw:
+
+| | Needs a GPU? | Status |
+|---|---|---|
+| FSDP2 sharding, DCP save/load, resharding, resume oracles, failure injection | **No** | Complete on CPU/Gloo |
+| Throughput, step-time distribution, peak memory, scaling efficiency, MFU | **Yes** | Deferred to Phase C hardware |
+
+This matters for the cost policy: every correctness gate can be passed before the
+GCP 90-day credit clock starts, so paid compute is spent only on measurements that
+genuinely require hardware.
 
 ## Known issues
 

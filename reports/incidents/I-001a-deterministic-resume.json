@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "incident_id": "I-001a",
+  "title": "Partial resume state, detected by bit-exact equality",
+  "injected": true,
+  "created_at": "2026-08-30T11:23:00Z",
+  "run_ids": [],
+  "scope_and_topology": "Two Gloo ranks as separate OS processes on one host; FSDP2 over an explicit CPU DeviceMesh with each rank holding 50% of parameters as DTensor. 20 steps, checkpoint at step 10, fp32, deterministic algorithms, synchronous checkpointing, fixed data order, dropout 0. Control, interrupt and resume run in genuinely separate process groups. Local multi-process, NOT multi-node evidence.",
+  "hypothesis": "Resume state is a checklist and a partially restored checkpoint does not crash; it produces a plausible loss curve that any tolerance-based comparison accepts.",
+  "detection_signal": "Declared before injection: after the resume boundary the resumed run must be EXACTLY equal to the uninterrupted control in every model parameter, every optimizer state tensor, the loss sequence and the consumed sample IDs. A tolerance was ruled out in advance because every injected defect stays inside any tolerance loose enough to absorb ordinary float noise.",
+  "injection": "Two defects applied at resume: reset_optimizer (optimizer state not restored, so AdamW moments and the per-parameter step counter restart) and ignore_loader_state (dataloader cursor not restored, so the epoch replays from the top).",
+  "detection_evidence": "artifacts/oracles/exact-resume.json: defect=none passes with 0 differences across 186 compared tensors and identical losses and sample IDs; reset_optimizer fails with 176 tensor differences and a diverging loss; ignore_loader_state fails with 132 tensor differences and diverging loss and sample IDs.",
+  "diagnosis": "The two defects are distinguishable by which sub-check fails, which makes the gate diagnostic rather than merely alarming. sample_id_match true with loss_match false localises to optimizer or scheduler state, since the data stream is intact. Both false localises to the dataloader cursor, since the run is consuming the wrong samples.",
+  "intervention": "None required; the defects are injected and the detector is the deliverable. In a real run this gate is the pre-flight check on the recovery path, executed deliberately before relying on resume in an expensive setting.",
+  "verification": {
+    "oracle": "exact_equality",
+    "result": "pass",
+    "detail": "Clean resume bit-exact across 186 tensors; both injected defects detected."
+  },
+  "cost": { "wall_seconds_lost": 60.0, "gpu_hours": 0.0, "estimated_usd": 0.0 },
+  "counterfactual": "Without exact equality both defects pass. reset_optimizer yields a loss curve that resumes slightly higher and re-converges, indistinguishable by eye from normal post-resume behaviour and readily explained away as the optimizer warming back up. That explanation is wrong, and on a long run it silently degrades the trajectory for as many steps as AdamW's moments take to re-accumulate.",
+  "limitations": "One host, CPU, Gloo, 2 ranks; NOT multi-node evidence. Bit-exactness is claimed only under the declared constraints (fp32, deterministic algorithms, synchronous checkpointing, fixed data order, unchanged world size) and is not claimed for bf16, asynchronous checkpointing or any world-size change. Dropout is 0, so RNG restoration is not load-bearing for this gate; the RNG path is implemented but not proven by this experiment. Synthetic fixtures, so no model-quality claim follows.",
+  "artifacts": ["artifacts/oracles/exact-resume.json", "reports/incidents/I-001a-deterministic-resume.md"]
+}

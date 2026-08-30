@@ -19,6 +19,8 @@ from __future__ import annotations
 import math
 import random
 import time
+import typing
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -28,11 +30,31 @@ from torch import Tensor, nn
 
 from pretrainmodel.config import Config
 from pretrainmodel.data.dataset import WindowDataset
-from pretrainmodel.data.loader import ShardedSampler
+from pretrainmodel.data.loader import LoaderState, ShardedSampler
 from pretrainmodel.model.objective import forecast_metrics, masked_mae
 from pretrainmodel.observability.events import EventLog
 
-__all__ = ["StepRecord", "TrainResult", "learning_rate_at", "seed_everything", "train"]
+__all__ = [
+    "StepRecord",
+    "TrainResult",
+    "build_optimizer",
+    "learning_rate_at",
+    "seed_everything",
+    "train",
+]
+
+
+def _clip_grad_norm(model: nn.Module, max_norm: float) -> Tensor:
+    """Clip gradients, preferring FSDP2's own implementation when present.
+
+    Under FSDP2 the gradients are DTensors spread across ranks, so a naive
+    per-rank norm would be wrong -- it would clip against a fraction of the true
+    global norm and silently change the effective learning rate.
+    """
+    fsdp_clip = getattr(model, "clip_grad_norm_", None)
+    if callable(fsdp_clip):
+        return typing.cast(Tensor, fsdp_clip(max_norm))
+    return torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
 
 
 def seed_everything(seed: int, *, deterministic: bool = False) -> None:
@@ -97,6 +119,22 @@ class TrainResult:
         return [s.loss for s in self.steps]
 
 
+def build_optimizer(cfg: Config, model: nn.Module) -> torch.optim.Optimizer:
+    """Construct the optimizer.
+
+    Exposed separately because under FSDP2 the optimizer must be created *after*
+    the model is sharded -- it has to see DTensor parameters, not the pre-shard
+    ones -- and because a resume needs to load state into the same instance the
+    loop will step.
+    """
+    return torch.optim.AdamW(
+        model.parameters(),
+        lr=cfg.optim.lr,
+        betas=(cfg.optim.betas[0], cfg.optim.betas[1]),
+        weight_decay=cfg.optim.weight_decay,
+    )
+
+
 def train(
     cfg: Config,
     model: nn.Module,
@@ -107,18 +145,28 @@ def train(
     events: EventLog | None = None,
     device: torch.device | None = None,
     epoch: int = 0,
+    start_step: int = 0,
+    resume_from: LoaderState | None = None,
+    optimizer: torch.optim.Optimizer | None = None,
+    on_step: Callable[[int, LoaderState], None] | None = None,
 ) -> TrainResult:
-    """Run up to ``cfg.train.max_steps`` optimizer steps."""
+    """Run optimizer steps from ``start_step`` up to ``cfg.train.max_steps``.
+
+    ``start_step`` is the *global* step, so a resumed run reconstructs the learning
+    rate from the schedule rather than restarting warmup -- the classic silent
+    discontinuity across a resume boundary.
+
+    ``on_step`` is called after each completed step with the step index and the
+    loader state at that boundary, which is where checkpointing hooks in. Keeping
+    checkpoint policy out of the loop means the loop stays identical between a
+    control run and a resumed one.
+    """
     device = device or torch.device("cpu")
     model = model.to(device)
     model.train()
 
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=cfg.optim.lr,
-        betas=(cfg.optim.betas[0], cfg.optim.betas[1]),
-        weight_decay=cfg.optim.weight_decay,
-    )
+    if optimizer is None:
+        optimizer = build_optimizer(cfg, model)
     sensor_ids = torch.arange(cfg.data.num_sensors, dtype=torch.long, device=device)
     autocast_dtype = torch.bfloat16 if cfg.train.dtype == "bf16" else None
 
@@ -129,9 +177,9 @@ def train(
 
     result = TrainResult(run_id=run_id)
     start = time.monotonic()
-    cursor = 0
+    cursor = sampler.resume_offset(resume_from) if resume_from is not None else 0
 
-    for step in range(cfg.train.max_steps):
+    for step in range(start_step, cfg.train.max_steps):
         if time.monotonic() - start > cfg.train.max_wall_seconds:
             result.stopped_because = "max_wall_seconds"
             break
@@ -189,6 +237,12 @@ def train(
                 lr=record.lr,
                 seconds=record.seconds,
                 samples=len(step_ids),
+            )
+
+        if on_step is not None:
+            on_step(
+                step + 1,
+                sampler.state_dict(epoch=epoch, rank_samples_consumed=cursor),
             )
 
         if not math.isfinite(total_loss):

@@ -1,0 +1,742 @@
+{
+  "backend": "gloo",
+  "cases": [
+    {
+      "actual": "pass",
+      "as_expected": true,
+      "boundary_step": 10,
+      "compared_tensors": 186,
+      "control_losses": [
+        0.3778742253780365,
+        0.356583833694458,
+        0.33411186933517456,
+        0.31304675340652466,
+        0.30338066816329956,
+        0.33367183804512024,
+        0.33364173769950867,
+        0.3389125466346741,
+        0.34865671396255493,
+        0.3334541916847229
+      ],
+      "differences": [],
+      "expected": "pass",
+      "loss_match": true,
+      "note": "Exact equality under the declared constraints: fp32, deterministic algorithms, synchronous checkpointing, fixed data order, same world size.",
+      "num_differences": 0,
+      "oracle": "exact_equality",
+      "passed": true,
+      "resume_defect": "none",
+      "resumed_losses": [
+        0.3778742253780365,
+        0.356583833694458,
+        0.33411186933517456,
+        0.31304675340652466,
+        0.30338066816329956,
+        0.33367183804512024,
+        0.33364173769950867,
+        0.3389125466346741,
+        0.34865671396255493,
+        0.3334541916847229
+      ],
+      "sample_id_match": true,
+      "summary": "bit-exact: 186 tensors, losses and sample IDs identical from step 10"
+    },
+    {
+      "actual": "fail",
+      "as_expected": true,
+      "boundary_step": 10,
+      "compared_tensors": 186,
+      "control_losses": [
+        0.3778742253780365,
+        0.356583833694458,
+        0.33411186933517456,
+        0.31304675340652466,
+        0.30338066816329956,
+        0.33367183804512024,
+        0.33364173769950867,
+        0.3389125466346741,
+        0.34865671396255493,
+        0.3334541916847229
+      ],
+      "differences": [
+        {
+          "detail": "256 of 256 elements differ; control=0.00074321712600067258 resumed=0.0051732715219259262",
+          "first_index": [
+            60
+          ],
+          "key": "model.blocks.0.ffn.net.0.bias",
+          "kind": "value",
+          "max_abs_diff": 0.004430054221302271
+        },
+        {
+          "detail": "16384 of 16384 elements differ; control=-0.00072694465052336454 resumed=0.0054015587083995342",
+          "first_index": [
+            239,
+            18
+          ],
+          "key": "model.blocks.0.ffn.net.0.weight",
+          "kind": "value",
+          "max_abs_diff": 0.006128503475338221
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.008269025944173336 resumed=0.011436717584729195",
+          "first_index": [
+            2
+          ],
+          "key": "model.blocks.0.ffn.net.3.bias",
+          "kind": "value",
+          "max_abs_diff": 0.0031676916405558586
+        },
+        {
+          "detail": "16384 of 16384 elements differ; control=-0.060003466904163361 resumed=-0.054439596831798553",
+          "first_index": [
+            24,
+            2
+          ],
+          "key": "model.blocks.0.ffn.net.3.weight",
+          "kind": "value",
+          "max_abs_diff": 0.005563870072364807
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.0059082186780869961 resumed=0.0017357193864881992",
+          "first_index": [
+            42
+          ],
+          "key": "model.blocks.0.ffn.norm.bias",
+          "kind": "value",
+          "max_abs_diff": 0.004172499291598797
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.99193531274795532 resumed=0.99687838554382324",
+          "first_index": [
+            26
+          ],
+          "key": "model.blocks.0.ffn.norm.weight",
+          "kind": "value",
+          "max_abs_diff": 0.00494307279586792
+        },
+        {
+          "detail": "192 of 192 elements differ; control=0.0020832892041653395 resumed=0.006222916767001152",
+          "first_index": [
+            54
+          ],
+          "key": "model.blocks.0.spatial.attn.in_proj_bias",
+          "kind": "value",
+          "max_abs_diff": 0.004139627330005169
+        },
+        {
+          "detail": "12288 of 12288 elements differ; control=0.015823578462004662 resumed=0.010181729681789875",
+          "first_index": [
+            13,
+            15
+          ],
+          "key": "model.blocks.0.spatial.attn.in_proj_weight",
+          "kind": "value",
+          "max_abs_diff": 0.0056418487802147865
+        },
+        {
+          "detail": "64 of 64 elements differ; control=-0.0050216447561979294 resumed=-0.0016287871403619647",
+          "first_index": [
+            2
+          ],
+          "key": "model.blocks.0.spatial.attn.out_proj.bias",
+          "kind": "value",
+          "max_abs_diff": 0.003392857499420643
+        },
+        {
+          "detail": "4096 of 4096 elements differ; control=-0.042835850268602371 resumed=-0.037789288908243179",
+          "first_index": [
+            52,
+            15
+          ],
+          "key": "model.blocks.0.spatial.attn.out_proj.weight",
+          "kind": "value",
+          "max_abs_diff": 0.005046561360359192
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.0028683759737759829 resumed=0.0059575755149126053",
+          "first_index": [
+            44
+          ],
+          "key": "model.blocks.0.spatial.norm.bias",
+          "kind": "value",
+          "max_abs_diff": 0.0030891995411366224
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.99425357580184937 resumed=0.99722433090209961",
+          "first_index": [
+            7
+          ],
+          "key": "model.blocks.0.spatial.norm.weight",
+          "kind": "value",
+          "max_abs_diff": 0.002970755100250244
+        },
+        {
+          "detail": "192 of 192 elements differ; control=-0.0075390664860606194 resumed=-0.0038222090806812048",
+          "first_index": [
+            179
+          ],
+          "key": "model.blocks.0.temporal.attn.in_proj_bias",
+          "kind": "value",
+          "max_abs_diff": 0.0037168574053794146
+        },
+        {
+          "detail": "12288 of 12288 elements differ; control=0.076982051134109497 resumed=0.071313634514808655",
+          "first_index": [
+            57,
+            15
+          ],
+          "key": "model.blocks.0.temporal.attn.in_proj_weight",
+          "kind": "value",
+          "max_abs_diff": 0.005668416619300842
+        },
+        {
+          "detail": "64 of 64 elements differ; control=-0.0076035195961594582 resumed=-0.0045371437445282936",
+          "first_index": [
+            2
+          ],
+          "key": "model.blocks.0.temporal.attn.out_proj.bias",
+          "kind": "value",
+          "max_abs_diff": 0.0030663758516311646
+        },
+        {
+          "detail": "4096 of 4096 elements differ; control=0.053962137550115585 resumed=0.059476140886545181",
+          "first_index": [
+            28,
+            31
+          ],
+          "key": "model.blocks.0.temporal.attn.out_proj.weight",
+          "kind": "value",
+          "max_abs_diff": 0.005514003336429596
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.0096202241256833076 resumed=0.0060630668886005878",
+          "first_index": [
+            18
+          ],
+          "key": "model.blocks.0.temporal.norm.bias",
+          "kind": "value",
+          "max_abs_diff": 0.00355715723708272
+        },
+        {
+          "detail": "64 of 64 elements differ; control=1.0084294080734253 resumed=1.003767728805542",
+          "first_index": [
+            12
+          ],
+          "key": "model.blocks.0.temporal.norm.weight",
+          "kind": "value",
+          "max_abs_diff": 0.004661679267883301
+        },
+        {
+          "detail": "256 of 256 elements differ; control=-0.1168571412563324 resumed=-0.11234061419963837",
+          "first_index": [
+            117
+          ],
+          "key": "model.blocks.1.ffn.net.0.bias",
+          "kind": "value",
+          "max_abs_diff": 0.004516527056694031
+        },
+        {
+          "detail": "16384 of 16384 elements differ; control=-0.078132174909114838 resumed=-0.072062626481056213",
+          "first_index": [
+            16,
+            54
+          ],
+          "key": "model.blocks.1.ffn.net.0.weight",
+          "kind": "value",
+          "max_abs_diff": 0.006069548428058624
+        },
+        {
+          "detail": "64 of 64 elements differ; control=-0.049025848507881165 resumed=-0.046847384423017502",
+          "first_index": [
+            2
+          ],
+          "key": "model.blocks.1.ffn.net.3.bias",
+          "kind": "value",
+          "max_abs_diff": 0.0021784640848636627
+        },
+        {
+          "detail": "16384 of 16384 elements differ; control=-0.0024057191330939531 resumed=-0.0081082899123430252",
+          "first_index": [
+            27,
+            75
+          ],
+          "key": "model.blocks.1.ffn.net.3.weight",
+          "kind": "value",
+          "max_abs_diff": 0.005702571012079716
+        },
+        {
+          "detail": "64 of 64 elements differ; control=-0.0078979888930916786 resumed=-0.0042798612266778946",
+          "first_index": [
+            0
+          ],
+          "key": "model.blocks.1.ffn.norm.bias",
+          "kind": "value",
+          "max_abs_diff": 0.003618127666413784
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.99315392971038818 resumed=0.99685472249984741",
+          "first_index": [
+            2
+          ],
+          "key": "model.blocks.1.ffn.norm.weight",
+          "kind": "value",
+          "max_abs_diff": 0.0037007927894592285
+        },
+        {
+          "detail": "192 of 192 elements differ; control=0.0091737862676382065 resumed=0.006109132431447506",
+          "first_index": [
+            33
+          ],
+          "key": "model.blocks.1.spatial.attn.in_proj_bias",
+          "kind": "value",
+          "max_abs_diff": 0.0030646538361907005
+        },
+        {
+          "detail": "12288 of 12288 elements differ; control=0.062092628329992294 resumed=0.067452549934387207",
+          "first_index": [
+            42,
+            5
+          ],
+          "key": "model.blocks.1.spatial.attn.in_proj_weight",
+          "kind": "value",
+          "max_abs_diff": 0.005359921604394913
+        },
+        {
+          "detail": "64 of 64 elements differ; control=-0.0078167011961340904 resumed=-0.0049211033619940281",
+          "first_index": [
+            48
+          ],
+          "key": "model.blocks.1.spatial.attn.out_proj.bias",
+          "kind": "value",
+          "max_abs_diff": 0.0028955978341400623
+        },
+        {
+          "detail": "4096 of 4096 elements differ; control=0.015398671850562096 resumed=0.020757323130965233",
+          "first_index": [
+            21,
+            40
+          ],
+          "key": "model.blocks.1.spatial.attn.out_proj.weight",
+          "kind": "value",
+          "max_abs_diff": 0.005358651280403137
+        },
+        {
+          "detail": "64 of 64 elements differ; control=-0.0067762923426926136 resumed=-0.0041695833206176758",
+          "first_index": [
+            52
+          ],
+          "key": "model.blocks.1.spatial.norm.bias",
+          "kind": "value",
+          "max_abs_diff": 0.002606709022074938
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.99353396892547607 resumed=0.99787050485610962",
+          "first_index": [
+            25
+          ],
+          "key": "model.blocks.1.spatial.norm.weight",
+          "kind": "value",
+          "max_abs_diff": 0.004336535930633545
+        },
+        {
+          "detail": "192 of 192 elements differ; control=-0.0059231859631836414 resumed=-0.002966918982565403",
+          "first_index": [
+            58
+          ],
+          "key": "model.blocks.1.temporal.attn.in_proj_bias",
+          "kind": "value",
+          "max_abs_diff": 0.0029562669806182384
+        },
+        {
+          "detail": "12288 of 12288 elements differ; control=0.13188637793064117 resumed=0.12636986374855042",
+          "first_index": [
+            13,
+            11
+          ],
+          "key": "model.blocks.1.temporal.attn.in_proj_weight",
+          "kind": "value",
+          "max_abs_diff": 0.005516514182090759
+        }
+      ],
+      "expected": "fail",
+      "loss_match": false,
+      "note": "Exact equality under the declared constraints: fp32, deterministic algorithms, synchronous checkpointing, fixed data order, same world size.",
+      "num_differences": 176,
+      "oracle": "exact_equality",
+      "passed": false,
+      "resume_defect": "reset_optimizer",
+      "resumed_losses": [
+        0.3778742253780365,
+        0.32568666338920593,
+        0.30006787180900574,
+        0.27882304787635803,
+        0.26549476385116577,
+        0.3155815005302429,
+        0.33139434456825256,
+        0.32730159163475037,
+        0.33696120977401733,
+        0.3238023817539215
+      ],
+      "sample_id_match": true,
+      "summary": "NOT bit-exact at the step-10 resume boundary:\n  loss sequence diverges after the boundary\n  model.blocks.0.ffn.net.0.bias [value] 256 of 256 elements differ; control=0.00074321712600067258 resumed=0.0051732715219259262\n  model.blocks.0.ffn.net.0.weight [value] 16384 of 16384 elements differ; control=-0.00072694465052336454 resumed=0.0054015587083995342\n  model.blocks.0.ffn.net.3.bias [value] 64 of 64 elements differ; control=0.008269025944173336 resumed=0.011436717584729195\n  model.blocks.0.ffn.net.3.weight [value] 16384 of 16384 elements differ; control=-0.060003466904163361 resumed=-0.054439596831798553\n  model.blocks.0.ffn.norm.bias [value] 64 of 64 elements differ; control=0.0059082186780869961 resumed=0.0017357193864881992\n  model.blocks.0.ffn.norm.weight [value] 64 of 64 elements differ; control=0.99193531274795532 resumed=0.99687838554382324\n  model.blocks.0.spatial.attn.in_proj_bias [value] 192 of 192 elements differ; control=0.0020832892041653395 resumed=0.006222916767001152\n  model.blocks.0.spatial.attn.in_proj_weight [value] 12288 of 12288 elements differ; control=0.015823578462004662 resumed=0.010181729681789875\n  model.blocks.0.spatial.attn.out_proj.bias [value] 64 of 64 elements differ; control=-0.0050216447561979294 resumed=-0.0016287871403619647\n  model.blocks.0.spatial.attn.out_proj.weight [value] 4096 of 4096 elements differ; control=-0.042835850268602371 resumed=-0.037789288908243179\n  ... and 166 more"
+    },
+    {
+      "actual": "fail",
+      "as_expected": true,
+      "boundary_step": 10,
+      "compared_tensors": 186,
+      "control_losses": [
+        0.3778742253780365,
+        0.356583833694458,
+        0.33411186933517456,
+        0.31304675340652466,
+        0.30338066816329956,
+        0.33367183804512024,
+        0.33364173769950867,
+        0.3389125466346741,
+        0.34865671396255493,
+        0.3334541916847229
+      ],
+      "differences": [
+        {
+          "detail": "256 of 256 elements differ; control=0.027237894013524055 resumed=0.02975783683359623",
+          "first_index": [
+            224
+          ],
+          "key": "model.blocks.0.ffn.net.0.bias",
+          "kind": "value",
+          "max_abs_diff": 0.002519942820072174
+        },
+        {
+          "detail": "16384 of 16384 elements differ; control=0.061021428555250168 resumed=0.056898895651102066",
+          "first_index": [
+            40,
+            2
+          ],
+          "key": "model.blocks.0.ffn.net.0.weight",
+          "kind": "value",
+          "max_abs_diff": 0.004122532904148102
+        },
+        {
+          "detail": "64 of 64 elements differ; control=-0.030975032597780228 resumed=-0.02881748229265213",
+          "first_index": [
+            44
+          ],
+          "key": "model.blocks.0.ffn.net.3.bias",
+          "kind": "value",
+          "max_abs_diff": 0.0021575503051280975
+        },
+        {
+          "detail": "16384 of 16384 elements differ; control=-0.024541262537240982 resumed=-0.019941406324505806",
+          "first_index": [
+            48,
+            194
+          ],
+          "key": "model.blocks.0.ffn.net.3.weight",
+          "kind": "value",
+          "max_abs_diff": 0.004599856212735176
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.0047468156553804874 resumed=0.0027314606122672558",
+          "first_index": [
+            24
+          ],
+          "key": "model.blocks.0.ffn.norm.bias",
+          "kind": "value",
+          "max_abs_diff": 0.0020153550431132317
+        },
+        {
+          "detail": "64 of 64 elements differ; control=1.0066629648208618 resumed=1.0096160173416138",
+          "first_index": [
+            13
+          ],
+          "key": "model.blocks.0.ffn.norm.weight",
+          "kind": "value",
+          "max_abs_diff": 0.002953052520751953
+        },
+        {
+          "detail": "192 of 192 elements differ; control=0.0036892448551952839 resumed=0.0066371220164000988",
+          "first_index": [
+            58
+          ],
+          "key": "model.blocks.0.spatial.attn.in_proj_bias",
+          "kind": "value",
+          "max_abs_diff": 0.002947877161204815
+        },
+        {
+          "detail": "12288 of 12288 elements differ; control=-0.14766892790794373 resumed=-0.14307081699371338",
+          "first_index": [
+            64,
+            17
+          ],
+          "key": "model.blocks.0.spatial.attn.in_proj_weight",
+          "kind": "value",
+          "max_abs_diff": 0.004598110914230347
+        },
+        {
+          "detail": "64 of 64 elements differ; control=-0.007714585866779089 resumed=-0.0053402059711515903",
+          "first_index": [
+            44
+          ],
+          "key": "model.blocks.0.spatial.attn.out_proj.bias",
+          "kind": "value",
+          "max_abs_diff": 0.0023743798956274986
+        },
+        {
+          "detail": "4096 of 4096 elements differ; control=0.020023401826620102 resumed=0.024080168455839157",
+          "first_index": [
+            44,
+            17
+          ],
+          "key": "model.blocks.0.spatial.attn.out_proj.weight",
+          "kind": "value",
+          "max_abs_diff": 0.004056766629219055
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.0021634495351463556 resumed=0.004840231966227293",
+          "first_index": [
+            32
+          ],
+          "key": "model.blocks.0.spatial.norm.bias",
+          "kind": "value",
+          "max_abs_diff": 0.0026767824310809374
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.99509996175765991 resumed=0.99839627742767334",
+          "first_index": [
+            59
+          ],
+          "key": "model.blocks.0.spatial.norm.weight",
+          "kind": "value",
+          "max_abs_diff": 0.0032963156700134277
+        },
+        {
+          "detail": "192 of 192 elements differ; control=0.0038731484673917294 resumed=0.0063383379019796848",
+          "first_index": [
+            140
+          ],
+          "key": "model.blocks.0.temporal.attn.in_proj_bias",
+          "kind": "value",
+          "max_abs_diff": 0.0024651894345879555
+        },
+        {
+          "detail": "12288 of 12288 elements differ; control=0.028914369642734528 resumed=0.033308587968349457",
+          "first_index": [
+            187,
+            53
+          ],
+          "key": "model.blocks.0.temporal.attn.in_proj_weight",
+          "kind": "value",
+          "max_abs_diff": 0.004394218325614929
+        },
+        {
+          "detail": "64 of 64 elements differ; control=-0.0075527899898588657 resumed=-0.0049217017367482185",
+          "first_index": [
+            44
+          ],
+          "key": "model.blocks.0.temporal.attn.out_proj.bias",
+          "kind": "value",
+          "max_abs_diff": 0.002631088253110647
+        },
+        {
+          "detail": "4096 of 4096 elements differ; control=0.0017305882647633553 resumed=0.0051858816295862198",
+          "first_index": [
+            63,
+            45
+          ],
+          "key": "model.blocks.0.temporal.attn.out_proj.weight",
+          "kind": "value",
+          "max_abs_diff": 0.0034552933648228645
+        },
+        {
+          "detail": "64 of 64 elements differ; control=-0.0035725398920476437 resumed=-0.00096142909023910761",
+          "first_index": [
+            26
+          ],
+          "key": "model.blocks.0.temporal.norm.bias",
+          "kind": "value",
+          "max_abs_diff": 0.002611110918223858
+        },
+        {
+          "detail": "64 of 64 elements differ; control=1.0076353549957275 resumed=1.0108214616775513",
+          "first_index": [
+            53
+          ],
+          "key": "model.blocks.0.temporal.norm.weight",
+          "kind": "value",
+          "max_abs_diff": 0.0031861066818237305
+        },
+        {
+          "detail": "256 of 256 elements differ; control=0.064112298190593719 resumed=0.060800131410360336",
+          "first_index": [
+            36
+          ],
+          "key": "model.blocks.1.ffn.net.0.bias",
+          "kind": "value",
+          "max_abs_diff": 0.003312166780233383
+        },
+        {
+          "detail": "16384 of 16384 elements differ; control=-0.0092190215364098549 resumed=-0.004862926434725523",
+          "first_index": [
+            221,
+            34
+          ],
+          "key": "model.blocks.1.ffn.net.0.weight",
+          "kind": "value",
+          "max_abs_diff": 0.004356095101684332
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.0082051344215869904 resumed=0.0057686744257807732",
+          "first_index": [
+            8
+          ],
+          "key": "model.blocks.1.ffn.net.3.bias",
+          "kind": "value",
+          "max_abs_diff": 0.002436459995806217
+        },
+        {
+          "detail": "16384 of 16384 elements differ; control=-0.031776029616594315 resumed=-0.028009934350848198",
+          "first_index": [
+            27,
+            23
+          ],
+          "key": "model.blocks.1.ffn.net.3.weight",
+          "kind": "value",
+          "max_abs_diff": 0.0037660952657461166
+        },
+        {
+          "detail": "64 of 64 elements differ; control=0.0069051254540681839 resumed=0.0095597598701715469",
+          "first_index": [
+            55
+          ],
+          "key": "model.blocks.1.ffn.norm.bias",
+          "kind": "value",
+          "max_abs_diff": 0.002654634416103363
+        },
+        {
+          "detail": "64 of 64 elements differ; control=1.0063754320144653 resumed=1.0097798109054565",
+          "first_index": [
+            55
+          ],
+          "key": "model.blocks.1.ffn.norm.weight",
+          "kind": "value",
+          "max_abs_diff": 0.003404378890991211
+        },
+        {
+          "detail": "192 of 192 elements differ; control=0.0070225251838564873 resumed=0.010045425966382027",
+          "first_index": [
+            133
+          ],
+          "key": "model.blocks.1.spatial.attn.in_proj_bias",
+          "kind": "value",
+          "max_abs_diff": 0.0030229007825255394
+        },
+        {
+          "detail": "12288 of 12288 elements differ; control=-0.017820259556174278 resumed=-0.022377658635377884",
+          "first_index": [
+            154,
+            49
+          ],
+          "key": "model.blocks.1.spatial.attn.in_proj_weight",
+          "kind": "value",
+          "max_abs_diff": 0.004557399079203606
+        },
+        {
+          "detail": "64 of 64 elements differ; control=-0.0031641507521271706 resumed=-0.0056774793192744255",
+          "first_index": [
+            8
+          ],
+          "key": "model.blocks.1.spatial.attn.out_proj.bias",
+          "kind": "value",
+          "max_abs_diff": 0.002513328567147255
+        },
+        {
+          "detail": "4096 of 4096 elements differ; control=-0.020030278712511063 resumed=-0.015424757264554501",
+          "first_index": [
+            27,
+            0
+          ],
+          "key": "model.blocks.1.spatial.attn.out_proj.weight",
+          "kind": "value",
+          "max_abs_diff": 0.004605521447956562
+        },
+        {
+          "detail": "64 of 64 elements differ; control=-0.0066408473066985607 resumed=-0.0037350517231971025",
+          "first_index": [
+            22
+          ],
+          "key": "model.blocks.1.spatial.norm.bias",
+          "kind": "value",
+          "max_abs_diff": 0.002905795583501458
+        },
+        {
+          "detail": "64 of 64 elements differ; control=1.0034961700439453 resumed=1.0069714784622192",
+          "first_index": [
+            8
+          ],
+          "key": "model.blocks.1.spatial.norm.weight",
+          "kind": "value",
+          "max_abs_diff": 0.0034753084182739258
+        },
+        {
+          "detail": "192 of 192 elements differ; control=-0.0055037145502865314 resumed=-0.0083052469417452812",
+          "first_index": [
+            30
+          ],
+          "key": "model.blocks.1.temporal.attn.in_proj_bias",
+          "kind": "value",
+          "max_abs_diff": 0.0028015323914587498
+        },
+        {
+          "detail": "12288 of 12288 elements differ; control=0.098703734576702118 resumed=0.09436286985874176",
+          "first_index": [
+            24,
+            2
+          ],
+          "key": "model.blocks.1.temporal.attn.in_proj_weight",
+          "kind": "value",
+          "max_abs_diff": 0.004340864717960358
+        }
+      ],
+      "expected": "fail",
+      "loss_match": false,
+      "note": "Exact equality under the declared constraints: fp32, deterministic algorithms, synchronous checkpointing, fixed data order, same world size.",
+      "num_differences": 132,
+      "oracle": "exact_equality",
+      "passed": false,
+      "resume_defect": "ignore_loader_state",
+      "resumed_losses": [
+        0.32972416281700134,
+        0.31763482093811035,
+        0.30271679162979126,
+        0.3089657723903656,
+        0.3063727915287018,
+        0.28165534138679504,
+        0.2749861776828766,
+        0.2717868387699127,
+        0.2796395719051361,
+        0.29413264989852905
+      ],
+      "sample_id_match": false,
+      "summary": "NOT bit-exact at the step-10 resume boundary:\n  consumed sample IDs diverge -> dataloader cursor not restored\n  loss sequence diverges after the boundary\n  model.blocks.0.ffn.net.0.bias [value] 256 of 256 elements differ; control=0.027237894013524055 resumed=0.02975783683359623\n  model.blocks.0.ffn.net.0.weight [value] 16384 of 16384 elements differ; control=0.061021428555250168 resumed=0.056898895651102066\n  model.blocks.0.ffn.net.3.bias [value] 64 of 64 elements differ; control=-0.030975032597780228 resumed=-0.02881748229265213\n  model.blocks.0.ffn.net.3.weight [value] 16384 of 16384 elements differ; control=-0.024541262537240982 resumed=-0.019941406324505806\n  model.blocks.0.ffn.norm.bias [value] 64 of 64 elements differ; control=0.0047468156553804874 resumed=0.0027314606122672558\n  model.blocks.0.ffn.norm.weight [value] 64 of 64 elements differ; control=1.0066629648208618 resumed=1.0096160173416138\n  model.blocks.0.spatial.attn.in_proj_bias [value] 192 of 192 elements differ; control=0.0036892448551952839 resumed=0.0066371220164000988\n  model.blocks.0.spatial.attn.in_proj_weight [value] 12288 of 12288 elements differ; control=-0.14766892790794373 resumed=-0.14307081699371338\n  model.blocks.0.spatial.attn.out_proj.bias [value] 64 of 64 elements differ; control=-0.007714585866779089 resumed=-0.0053402059711515903\n  model.blocks.0.spatial.attn.out_proj.weight [value] 4096 of 4096 elements differ; control=0.020023401826620102 resumed=0.024080168455839157\n  ... and 122 more"
+    }
+  ],
+  "checkpoint_at": 10,
+  "constraints": {
+    "async_checkpoint": false,
+    "deterministic_algorithms": true,
+    "dropout": 0.0,
+    "dtype": "fp32",
+    "shuffle": false
+  },
+  "device": "cpu",
+  "fsdp2": true,
+  "limitations": "One host, CPU, Gloo, 2 ranks: NOT multi-node evidence. Bit-exactness is claimed only under the constraints listed above; it is not claimed for bf16, asynchronous checkpointing, or any change of world size.",
+  "max_steps": 20,
+  "oracle": "exact_equality",
+  "passed": true,
+  "schema_version": 1,
+  "spec": "8.1",
+  "world_size": 2
+}

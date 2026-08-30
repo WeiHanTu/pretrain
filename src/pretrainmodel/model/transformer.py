@@ -114,8 +114,14 @@ class SpatiotemporalTransformer(nn.Module):
         last = x[:, -1]  # (B, S, D)
         out = self.head(last)  # (B, S, H*F)
         b, s, _ = out.shape
-        forecast: Tensor = out.reshape(b, s, self.horizon_steps, self.num_features).permute(
-            0, 2, 1, 3
+        # .contiguous() is load-bearing under FSDP2, not cosmetic: a wrapped module
+        # that returns a *view* can have its pre-backward hook dropped by a later
+        # in-place op, which skips the parameter all-gather and silently produces
+        # wrong gradients rather than raising.
+        forecast: Tensor = (
+            out.reshape(b, s, self.horizon_steps, self.num_features)
+            .permute(0, 2, 1, 3)
+            .contiguous()
         )
         return forecast
 
