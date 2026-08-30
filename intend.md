@@ -77,10 +77,12 @@ The project is complete enough for interview use only when all of the following 
 
 Priority order:
 
-1. **NRP/Nautilus:** free shared research compute if an active UCSD collaborator can add the user to a namespace.
-2. **GCP credit:** two same-zone, same-VPC L4 VMs after local gates pass. GCP Free Trial accounts cannot attach GPUs; activating paid billing retains remaining credit for the original 90-day window but enables overage billing.
-3. **ACCESS:** pursue an Explore allocation in parallel if advisor collaboration and current eligibility support it.
-4. **Out-of-pocket compute:** excluded unless explicitly approved.
+1. **GCP credit:** two same-zone, same-VPC L4 VMs after local gates pass. GCP Free Trial accounts cannot attach GPUs; activating paid billing retains remaining credit for the original 90-day window but enables overage billing.
+2. **Out-of-pocket compute:** excluded unless explicitly approved.
+
+Self-serve cloud is chosen deliberately over shared academic clusters: it carries no
+institutional dependency, no sponsor, and no queue, so the schedule is controlled
+entirely by the author and the run can happen the day the code is ready.
 
 The internal GCP target is $120 or less. Availability and GPU quota are risks; quota does not guarantee capacity.
 
@@ -104,5 +106,3 @@ Do not write this as a completed resume claim until every referenced artifact ex
 - DCRNN dataset/graph reference for METR-LA and PEMS-BAY: <https://github.com/liyaguang/DCRNN>
 - Caltrans PeMS source and access: <https://dot.ca.gov/programs/traffic-operations/mpr/pems-source>
 - GCP Free Trial limitations: <https://docs.cloud.google.com/free/docs/free-cloud-features>
-- NRP/Nautilus documentation: <https://nrp.ai/documentation/>
-- ACCESS request preparation: <https://allocations.access-ci.org/prepare-requests>

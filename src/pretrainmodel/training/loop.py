@@ -19,7 +19,6 @@ from __future__ import annotations
 import math
 import random
 import time
-import typing
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -33,6 +32,12 @@ from pretrainmodel.data.dataset import WindowDataset
 from pretrainmodel.data.loader import LoaderState, ShardedSampler
 from pretrainmodel.model.objective import forecast_metrics, masked_mae
 from pretrainmodel.observability.events import EventLog
+from pretrainmodel.observability.timing import (
+    PhaseTimer,
+    TimingAccumulator,
+    memory_snapshot,
+    reset_memory_stats,
+)
 
 __all__ = [
     "StepRecord",
@@ -42,19 +47,6 @@ __all__ = [
     "seed_everything",
     "train",
 ]
-
-
-def _clip_grad_norm(model: nn.Module, max_norm: float) -> Tensor:
-    """Clip gradients, preferring FSDP2's own implementation when present.
-
-    Under FSDP2 the gradients are DTensors spread across ranks, so a naive
-    per-rank norm would be wrong -- it would clip against a fraction of the true
-    global norm and silently change the effective learning rate.
-    """
-    fsdp_clip = getattr(model, "clip_grad_norm_", None)
-    if callable(fsdp_clip):
-        return typing.cast(Tensor, fsdp_clip(max_norm))
-    return torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
 
 
 def seed_everything(seed: int, *, deterministic: bool = False) -> None:
@@ -103,6 +95,7 @@ class StepRecord:
     lr: float
     seconds: float
     sample_ids: list[str]
+    phases: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -112,6 +105,8 @@ class TrainResult:
     consumed_ids: list[str] = field(default_factory=list)
     final_loss: float = float("nan")
     stopped_because: str = ""
+    step_times: list[float] = field(default_factory=list)
+    timing: dict[str, Any] = field(default_factory=dict)
     metrics: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -149,6 +144,7 @@ def train(
     resume_from: LoaderState | None = None,
     optimizer: torch.optim.Optimizer | None = None,
     on_step: Callable[[int, LoaderState], None] | None = None,
+    enable_timing: bool = True,
 ) -> TrainResult:
     """Run optimizer steps from ``start_step`` up to ``cfg.train.max_steps``.
 
@@ -176,6 +172,8 @@ def train(
     per_step = micro * accum
 
     result = TrainResult(run_id=run_id)
+    timings = TimingAccumulator(method=PhaseTimer(device, enabled=enable_timing).method)
+    reset_memory_stats(device)
     start = time.monotonic()
     cursor = sampler.resume_offset(resume_from) if resume_from is not None else 0
 
@@ -194,28 +192,45 @@ def train(
 
         optimizer.zero_grad(set_to_none=True)
         step_ids: list[str] = []
-        total_loss = 0.0
+        loss_sum: Tensor | None = None
+        timer = PhaseTimer(device, enabled=enable_timing)
 
         for _ in range(accum):
-            ids = rank_ids[cursor : cursor + micro]
-            cursor += micro
-            step_ids.extend(ids)
-            batch = dataset.batch(ids).to(device)
+            with timer.phase("data_wait"):
+                ids = rank_ids[cursor : cursor + micro]
+                cursor += micro
+                step_ids.extend(ids)
+                batch = dataset.batch(ids).to(device)
 
-            if autocast_dtype is not None:
-                with torch.autocast(device_type=device.type, dtype=autocast_dtype):
+            with timer.phase("forward"):
+                if autocast_dtype is not None:
+                    with torch.autocast(device_type=device.type, dtype=autocast_dtype):
+                        pred = model(batch.context_values, batch.context_observed, sensor_ids)
+                        loss = masked_mae(pred.float(), batch.target_values, batch.target_observed)
+                else:
                     pred = model(batch.context_values, batch.context_observed, sensor_ids)
-                    loss = masked_mae(pred.float(), batch.target_values, batch.target_observed)
-            else:
-                pred = model(batch.context_values, batch.context_observed, sensor_ids)
-                loss = masked_mae(pred, batch.target_values, batch.target_observed)
+                    loss = masked_mae(pred, batch.target_values, batch.target_observed)
 
-            # Scale so the reported loss is comparable regardless of accumulation.
-            (loss / accum).backward()  # type: ignore[no-untyped-call]
-            total_loss += float(loss.detach()) / accum
+            with timer.phase("backward"):
+                # Scale so the reported loss is comparable regardless of accumulation.
+                (loss / accum).backward()  # type: ignore[no-untyped-call]
 
-        grad_norm = float(torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.optim.grad_clip))
-        optimizer.step()
+            # Accumulate on device. Converting the loss to a Python float here would
+            # force a device synchronisation on EVERY micro-batch, serialising the
+            # pipeline on GPU and making the phase timings describe a run nobody
+            # would actually want to do. It is read once, after finalize().
+            detached = loss.detach()
+            loss_sum = detached if loss_sum is None else loss_sum + detached
+
+        with timer.phase("optimizer"):
+            grad_norm_t = torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.optim.grad_clip)
+            optimizer.step()
+
+        # The single synchronisation per step, at a boundary the optimizer already
+        # orders. Reads after it are free.
+        phase_durations = timer.finalize()
+        grad_norm = float(grad_norm_t)
+        total_loss = float(loss_sum) / accum if loss_sum is not None else float("nan")
 
         record = StepRecord(
             step=step,
@@ -224,8 +239,10 @@ def train(
             lr=lr,
             seconds=time.monotonic() - step_start,
             sample_ids=step_ids,
+            phases=phase_durations,
         )
         result.steps.append(record)
+        timings.add(record.seconds, phase_durations)
         result.consumed_ids.extend(step_ids)
 
         if events and (step % max(1, cfg.train.log_every) == 0 or step == cfg.train.max_steps - 1):
@@ -262,12 +279,20 @@ def train(
         "stopped_because": result.stopped_because,
     }
     if result.steps:
-        times = sorted(s.seconds for s in result.steps)
-        result.metrics["step_time_p50"] = times[len(times) // 2]
-        result.metrics["step_time_p95"] = times[min(len(times) - 1, int(len(times) * 0.95))]
-        result.metrics["samples_per_second"] = len(result.consumed_ids) / max(
-            1e-9, sum(s.seconds for s in result.steps)
-        )
+        elapsed = sum(s.seconds for s in result.steps)
+        summary = timings.summary()
+        step_total = summary["step_total"]
+        result.timing = summary
+        result.metrics["step_time_p50"] = step_total["p50"]
+        result.metrics["step_time_p95"] = step_total["p95"]
+        result.metrics["samples_per_second"] = len(result.consumed_ids) / max(1e-9, elapsed)
+        result.metrics["timing_method"] = summary["timing_method"]
+        result.metrics["step_time_breakdown"] = {
+            name: stats["p50"] for name, stats in summary["phases"].items()
+        }
+        result.metrics["unaccounted_fraction"] = summary["unaccounted_fraction"]
+        result.metrics.update(memory_snapshot(device))
+        result.step_times = [s.seconds for s in result.steps]
     return result
 
 

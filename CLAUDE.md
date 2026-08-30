@@ -43,7 +43,7 @@ Before marking a phase complete, run the commands defined for that phase in `pla
 
 ## Cost policy
 
-- Compute priority: NRP/Nautilus → GCP credit → ACCESS → paid compute only with explicit user approval.
+- Compute priority: GCP credit → paid compute only with explicit user approval.
 - Do not start the GCP 90-day credit window until the local Phase A gate passes.
 - Internal GCP target: at most $120 of the $300 credit; reserve the rest for failure and quota/availability surprises.
 - Never leave a GPU VM running unattended. Infrastructure must support automatic expiry/deletion.

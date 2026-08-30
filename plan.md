@@ -14,9 +14,10 @@ Do not mark an item complete based only on code existence. Its verification comm
 
 ## Track 0 — Access requests in parallel
 
-- [!] Ask the active UCSD collaborator whether NRP/Nautilus namespace access is available. RULED OUT: students are added to a namespace by their supervisor; the author has graduated and does not wish to ask his former advisor.
-- [!] Confirm whether the relevant namespace permits multi-node GPU Jobs or a PyTorch operator. N/A — no namespace will be requested.
-- [!] Assess current eligibility for an ACCESS Explore request and obtain the required advisor letter if applicable. RULED OUT: a graduate-student PI needs an advisor letter of collaboration — same constraint as NRP.
+- [x] Decide the compute source. **GCP self-serve**, using the first-time credit. Shared
+  academic clusters were considered and set aside: they require an institutional sponsor,
+  which adds a dependency and a queue to a schedule that is otherwise entirely under the
+  author's control.
 - [x] Do **not** start the GCP trial clock until Phase A passes. Phases A *and* B were both completed before signup, so the 90-day window is still unspent.
 
 Evidence:
@@ -147,7 +148,7 @@ Exact same-world-size resume passes; 1↔2 DCP reshard passes; artifacts validat
 
 ### C0. Cost and safety gate
 
-- [ ] User confirms GCP activation/paid-billing risk or NRP namespace.
+- [ ] User confirms GCP activation and accepts the paid-billing risk.
 - [ ] Confirm two-GPU quota/capacity; do not assume it.
 - [~] Configure budget alerts and document that alerts do not cap spend. Documented in `reports/access/compute_options.md` and `artifacts/cloud/preflight.json`; *configuring* the alert is a user action and is tracked as UNANSWERED.
 - [~] Validate VM expiry/deletion and cleanup commands without GPUs. `infra/gcp/{provision,startup,firewall,teardown}.sh` written and syntax-checked, with GCP-enforced `--max-run-duration` + `--instance-termination-action=DELETE` rather than a guest-side timer. NOT executed against the live API.
@@ -168,6 +169,17 @@ the first paid hour is spent measuring, not debugging.
       single-host launch-path exercise and never as multi-node evidence.
 - [x] Fail fast on an unresolvable hostname rather than hanging — see
       `reports/incidents/I-007-rendezvous-hostname-hang.md`.
+- [x] Wire checkpointing into the real training path and prove it in the preflight —
+      see `reports/incidents/I-008-preflight-false-assurance.md`.
+- [x] Instrument the step-time breakdown (spec 10.2): data wait, forward, backward and
+      optimizer durations, per-rank step-time distribution, peak GPU memory, and
+      samples/second globally and per rank. Uses CUDA events on GPU rather than a wall
+      clock — timing async kernels with `perf_counter` measures launch, not execution —
+      and records `timing_method` in every artifact. Unaccounted time is reported
+      rather than absorbed (measured at 0.4% in the two-rank rehearsal).
+- [x] Add straggler detection over per-rank step-time medians, with the ratio threshold
+      declared in advance. This is the detector for incident I-004.
+- [x] Exercise bf16 for the first time; both cloud configs request it.
 
 ### C1. Two-host NCCL smoke test
 
@@ -241,7 +253,6 @@ Evidence: `artifacts/gates/release.txt` plus a clean, reviewable repository stat
 - [ ] Divergence/rewind intervention experiment with predeclared policy.
 - [ ] LargeST held-out-region transfer evaluation.
 - [ ] Async DCP overhead comparison.
-- [ ] NRP Kubernetes deployment if GCP was used for the minimum project.
 - [ ] 2→4 world-size resume.
 - [ ] JAX implementation of one small correctness experiment.
 - [ ] Conservation metric only after directed topology and boundary-flow requirements are met.
@@ -296,10 +307,6 @@ not this library.
 
 ## Known issues
 
-- **Step-time breakdown is not instrumented.** `spec.md` §10.2 requires data wait,
-  forward/backward, optimizer and checkpoint durations; the loop currently records
-  only total step time (p50/p95). Phase C exists to measure, so this should be added
-  before provisioning rather than after.
 - **`determinism.async_checkpoint` is declared and implemented nowhere.** It is
   validated by the config schema and honoured by no code path — the same shape of
   defect as I-008. Either implement it or remove the field; leaving it invites the
@@ -316,6 +323,5 @@ not this library.
 - Exact LargeST subsets and time windows, pending data inspection and license/citation review.
 - Final Python/PyTorch versions, pending compatibility check before lockfile creation.
 - GCP region, pending L4 quota and capacity.
-- NRP PyTorch operator choice, pending namespace capabilities.
 - Public license for project code, pending dependency/data compatibility review.
 

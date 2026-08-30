@@ -65,7 +65,6 @@ pretrainmodel/
 │   └── fixtures/
 ├── infra/
 │   ├── gcp/
-│   └── nrp/
 ├── artifacts/          # small, reviewable evidence only
 ├── reports/incidents/
 └── scripts/
@@ -276,11 +275,7 @@ Every incident report SHALL contain:
 - Every job SHALL have `max_steps`, maximum wall time and a durable checkpoint destination.
 - GCP activation and quota actions remain user-controlled because activating paid billing enables charges beyond credit.
 
-### 11.2 NRP/Nautilus
-
-NRP manifests MAY use Kubernetes Jobs or an approved distributed-training operator. Namespace access and cluster policy must be confirmed before assuming PyTorchJob support.
-
-### 11.3 Credentials
+### 11.2 Credentials
 
 No credentials, service-account keys or signed URLs may enter Git, logs, manifests or reports. Use application-default or workload identity mechanisms appropriate to the platform.
 

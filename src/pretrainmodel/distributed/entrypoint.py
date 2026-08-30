@@ -24,6 +24,7 @@ import time
 from pathlib import Path
 
 import torch
+import torch.distributed as dist
 
 from pretrainmodel.config import load_config
 from pretrainmodel.data.coverage import verify_coverage
@@ -42,6 +43,7 @@ from pretrainmodel.model.transformer import build_model, count_parameters
 from pretrainmodel.observability.cost import estimate_cost
 from pretrainmodel.observability.events import EventLog
 from pretrainmodel.observability.manifest import RunManifest, new_run_id
+from pretrainmodel.observability.timing import straggler_report
 from pretrainmodel.training.checkpointing import PeriodicCheckpointer, resume_if_available
 from pretrainmodel.training.loop import build_optimizer, seed_everything, train
 
@@ -170,6 +172,15 @@ def main(argv: list[str] | None = None) -> int:
             sampler.rank_epoch_ids(0)[: len(result.consumed_ids)], [result.consumed_ids]
         )
 
+        # Per-rank step times, gathered for straggler detection (incident I-004).
+        # A straggler never fails: every rank waits for the slowest at each
+        # collective, so one slow rank taxes the whole job while its neighbours look
+        # perfectly healthy. Pooled averages hide it, so rank medians are compared.
+        gathered_times: list[list[float] | None] = [None] * info.world_size
+        dist.all_gather_object(gathered_times, result.step_times)
+        per_rank_times = [g or [] for g in gathered_times]
+        straggler = straggler_report(per_rank_times)
+
         if info.rank == 0:
             run = RunManifest(
                 cfg,
@@ -186,6 +197,12 @@ def main(argv: list[str] | None = None) -> int:
                 **result.metrics,
                 "rank_coverage_passed": coverage.passed,
                 "sharding": sharding_report(model),
+                "timing": result.timing,
+                "straggler": straggler.to_dict(),
+                "per_rank_samples_per_second": [
+                    len(times) * cfg.global_batch_size(1) / max(1e-9, sum(times))
+                    for times in per_rank_times
+                ],
             }
             run.hardware = {
                 "rendezvous": info.to_dict(),
@@ -200,6 +217,31 @@ def main(argv: list[str] | None = None) -> int:
                 gpus_per_rank=1 if torch.cuda.is_available() else 0,
             )
             run.write(out_dir / "run_manifest.json")
+            (out_dir / "timing.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "world_size": info.world_size,
+                        "distinct_hosts": topology.distinct_hosts,
+                        "is_multi_node": topology.is_multi_node,
+                        "timing": result.timing,
+                        "straggler": straggler.to_dict(),
+                        "memory": {
+                            k: result.metrics.get(k)
+                            for k in ("peak_allocated_bytes", "peak_reserved_bytes")
+                        },
+                        "note": (
+                            "Throughput and memory figures describe THIS hardware and "
+                            "topology only. timing.method records how phases were "
+                            "measured; a breakdown that does not say cannot be compared "
+                            "against another one."
+                        ),
+                    },
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n"
+            )
             (out_dir / "topology.json").write_text(
                 json.dumps(
                     {
@@ -222,7 +264,8 @@ def main(argv: list[str] | None = None) -> int:
                 f"rank0: {result.metrics['steps_completed']} steps, "
                 f"final_loss={result.final_loss:.6f}, "
                 f"world_size={info.world_size}, distinct_hosts={topology.distinct_hosts}, "
-                f"multi_node={topology.is_multi_node}"
+                f"multi_node={topology.is_multi_node}, "
+                f"straggler={straggler.detected} (ratio {straggler.straggler_ratio:.3f})"
             )
             print(f"artifacts: {out_dir}")
         return 0

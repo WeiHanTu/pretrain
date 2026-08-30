@@ -23,7 +23,7 @@ dataset exist to make distributed failures real and reproducible.
 | 3 | A deterministic same-world-size resume is **bit-exact** | Exact-equality oracle — **verified**, 186 tensors, 0 differences |
 | 4 | A BF16 / changed-world-size resume is **statistically equivalent** | Seed-variance band, declared *before* the experiment |
 | 5 | Checkpoints load at a different world size | DCP reshard matrix — **verified** 1↔2, 2↔4 on CPU/Gloo |
-| 6 | Injected failures are detected and produce actionable evidence | Incident suite I-001 … I-005 |
+| 6 | Injected failures are detected and produce actionable evidence | Incident suite — I-001a/b, I-002, I-003 captured; I-004 detector built; I-006/I-007/I-008 are organic findings |
 
 Claims 3 and 4 are deliberately separate. Bit-exactness is achievable only under
 the declared FP32/deterministic/synchronous constraints; a BF16 or resharded run
@@ -37,7 +37,7 @@ a named artifact under `artifacts/` or `reports/`.
 
 | Phase | Scope | Status |
 |---|---|---|
-| Track 0 | Compute access decision | **Decided** — GCP; NRP and ACCESS ruled out (`reports/access/compute_options.md`) |
+| Track 0 | Compute access decision | **Decided** — GCP self-serve (`reports/access/compute_options.md`) |
 | A1 | Repo bootstrap, config schema, CI | **Complete except license choice** — `artifacts/gates/phase-a1.txt` |
 | A2 | Data layer, rank-coverage invariant, negative tests | **Complete** — `artifacts/coverage/`, `reports/incidents/I-002`, `I-003` |
 | A3 | Model, training loop, run manifest | **Complete** — `artifacts/gates/tiny-overfit.json` |
@@ -104,7 +104,7 @@ configs/     TOML run configurations
 schemas/     JSON Schemas for run manifests, incidents and coverage artifacts
 src/         library code
 tests/       unit, distributed (Gloo), integration
-infra/       GCP and NRP deployment material
+infra/       GCP provisioning and teardown material
 artifacts/   small, reviewable evidence only
 reports/     incident reports and access notes
 ```
