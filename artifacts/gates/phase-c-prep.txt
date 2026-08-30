@@ -1,6 +1,6 @@
 gate:        phase-c-prep
-captured_at: 2026-08-30T21:31:23Z
-git_commit:  63ac3f4d034fbd4bb6adbce20daa6fcbbacd0c0b
+captured_at: 2026-08-30T21:58:43Z
+git_commit:  6f35747a919291ec580160dc9575a1bded1e5945
 git_dirty:   false
 dirty_note:  tree state observed before this file was written
 python:      3.12.13
@@ -8,38 +8,53 @@ torch:       2.13.0+cu130
 platform:    Linux aarch64
 
 $ uv sync --locked
-Resolved 48 packages in 0.52ms
+Resolved 48 packages in 0.46ms
 Uninstalled 1 package in 5ms
-Installed 1 package in 5.76s
+Installed 1 package in 7.08s
  ~ nvidia-cusparselt-cu13==0.8.1
 
 $ uv run ruff check .
-Uninstalled 1 package in 18ms
-Installed 1 package in 6.87s
+Uninstalled 1 package in 20ms
+Installed 1 package in 7.06s
 All checks passed!
 
 $ uv run ruff format --check .
-Uninstalled 1 package in 17ms
-Installed 1 package in 5.86s
-66 files already formatted
+Uninstalled 1 package in 19ms
+Installed 1 package in 7.03s
+69 files already formatted
 
 $ uv run mypy src
-Uninstalled 1 package in 18ms
-Installed 1 package in 7.00s
-Success: no issues found in 31 source files
+Uninstalled 1 package in 19ms
+Installed 1 package in 7.06s
+Success: no issues found in 32 source files
 
 $ uv run pytest -q
-Uninstalled 1 package in 17ms
-Installed 1 package in 7.22s
-........................................................................ [ 31%]
-........................................................................ [ 63%]
-........................................................................ [ 95%]
-...........                                                              [100%]
-227 passed in 26.27s
+Uninstalled 1 package in 19ms
+Installed 1 package in 7.07s
+........................................................................ [ 30%]
+........................................................................ [ 60%]
+........................................................................ [ 90%]
+........................                                                 [100%]
+=============================== warnings summary ===============================
+tests/integration/test_checkpointing_path.py::test_a_real_training_run_writes_committed_checkpoints
+tests/integration/test_checkpointing_path.py::test_checkpoint_records_the_loader_cursor
+tests/integration/test_checkpointing_path.py::test_keep_last_prunes_older_checkpoints
+tests/integration/test_checkpointing_path.py::test_interrupted_run_resumes_from_its_checkpoint
+tests/integration/test_checkpointing_path.py::test_bf16_training_path_runs_and_stays_finite
+tests/integration/test_checkpointing_path.py::test_bf16_and_fp32_reach_comparable_loss
+  /sessions/rcw-01mbv1arcirjzf2qygsp8gku/mnt/pretrainmodel/.venv/lib/python3.12/site-packages/torch/distributed/checkpoint/utils.py:485: UserWarning: torch.distributed is disabled, unavailable or uninitialized, assuming the intent is to save in a single process.
+    return func(*args, **kwargs)
+
+tests/integration/test_checkpointing_path.py::test_interrupted_run_resumes_from_its_checkpoint
+  /sessions/rcw-01mbv1arcirjzf2qygsp8gku/mnt/pretrainmodel/.venv/lib/python3.12/site-packages/torch/distributed/checkpoint/utils.py:485: UserWarning: torch.distributed is disabled, unavailable or uninitialized, assuming the intent is to load in a single process.
+    return func(*args, **kwargs)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+240 passed, 7 warnings in 26.70s
 
 $ uv run python scripts/check_repo_hygiene.py
 Uninstalled 1 package in 6ms
-Installed 1 package in 7.03s
-Repository hygiene check passed (105 tracked files).
+Installed 1 package in 5.94s
+Repository hygiene check passed (110 tracked files).
 
 result: PASS
