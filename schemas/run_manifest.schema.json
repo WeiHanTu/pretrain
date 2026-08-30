@@ -198,6 +198,37 @@
         "device": {
           "type": "string",
           "description": "Device type the ranks ran on (cpu or cuda)."
+        },
+        "zones": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Cloud zone per rank, in rank order; 'unknown' off-cloud."
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Cloud region per rank, derived from the zone."
+        },
+        "distinct_regions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Observed count of unique regions across ranks."
+        },
+        "spans_regions": {
+          "type": "boolean",
+          "description": "True when ranks were observed in more than one region."
+        },
+        "throughput_numbers_comparable": {
+          "type": "boolean",
+          "description": "False when ranks span regions. Throughput and scaling figures from such a run measure the wide-area link, not the implementation, and must not be reported as scaling results. Correctness evidence is unaffected."
+        },
+        "throughput_warning": {
+          "type": "string",
+          "description": "Present only when spans_regions is true."
         }
       }
     },
