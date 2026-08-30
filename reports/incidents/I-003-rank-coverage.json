@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "incident_id": "I-003",
+  "title": "Silent sample duplication across ranks",
+  "injected": true,
+  "created_at": "2026-08-30T10:19:34Z",
+  "run_ids": [],
+  "scope_and_topology": "Four Gloo ranks as separate OS processes on one host (distinct_hosts=1). Synthetic 96-sample universe, seed=2027, shuffle=true, drop_last=true, one epoch. Local multi-process test environment, not multi-node evidence.",
+  "hypothesis": "A sharding defect causing overlapping or duplicated sample consumption produces no crash, no loss anomaly and no throughput anomaly, and is therefore invisible to every metric normally watched during training.",
+  "detection_signal": "Declared before injection: multiset_union(consumed_ids_by_rank) == expected_epoch_ids AND pairwise disjointness between ranks, with offending sample IDs named on failure. A count-only check was declared insufficient in advance because two of the four defects preserve a plausible total count.",
+  "injection": "Four independent defects via inject_sampler_defect: duplicate_within_rank, duplicate_across_ranks, drop_sample, full_dataset_per_rank.",
+  "detection_evidence": "artifacts/coverage/world-size-{1,2,4}.json all record passed=true with consumed_count==expected_count==96. artifacts/coverage/negative-control-full-dataset-per-rank.json records consumed_count=384 against expected_count=96, duplicated_total=96, six overlapping rank pairs, passed=false.",
+  "diagnosis": "Inflated total combined with universal pairwise overlap identifies a missing shard split; correct total with a single overlapping pair identifies a wrong sharding boundary; a within-rank repeat identifies sampler replay; a deficit of one with no overlap identifies off-by-one truncation. The loss curve for full_dataset_per_rank would appear entirely healthy.",
+  "intervention": "None required; the defects are injected and the detector is the deliverable. In a real run the invariant is checked at epoch end and a violation aborts before the checkpoint is committed, so a corrupted data trajectory cannot be resumed and inherited.",
+  "verification": {
+    "oracle": "invariant_assertion",
+    "result": "pass",
+    "detail": "All four injected defects detected; all three clean world sizes satisfied the invariant."
+  },
+  "cost": { "wall_seconds_lost": 21.2, "gpu_hours": 0.0, "estimated_usd": 0.0 },
+  "counterfactual": "Without the invariant, full_dataset_per_rank would have trained on a 4x duplicated epoch while reporting normal loss, throughput and step count. The error would surface, if ever, as unexplained overfitting after the compute was already spent, with no way to attribute it.",
+  "limitations": "One host, CPU, Gloo; not multi-node evidence. Synthetic 96-sample universe, so no model-quality claim follows. The invariant covers sample identity, not sample content. Defects were injected at the sampler boundary; a defect below that boundary would need a different detector.",
+  "artifacts": [
+    "artifacts/coverage/world-size-1.json",
+    "artifacts/coverage/world-size-2.json",
+    "artifacts/coverage/world-size-4.json",
+    "artifacts/coverage/negative-control-full-dataset-per-rank.json"
+  ]
+}

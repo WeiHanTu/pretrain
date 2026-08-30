@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "incident_id": "I-002",
+  "title": "Length-preserving shard corruption",
+  "injected": true,
+  "created_at": "2026-08-30T10:19:34Z",
+  "run_ids": [],
+  "scope_and_topology": "Single process, CPU. Synthetic dataset of 3 shards x 40 timesteps x 8 sensors, each shard's SHA-256 and byte length recorded in shards.json at creation time.",
+  "hypothesis": "A shard modified after preprocessing (partial write, bad disk, interrupted sync, stale object-store retry) will not announce itself; training proceeds and produces a loss curve.",
+  "detection_signal": "Declared before injection: ShardManifest.verify() runs before the first optimizer step and rejects the dataset, naming the offending file and reporting sha256 mismatch. A size check alone was declared insufficient in advance, so the injected corruption is length-preserving.",
+  "injection": "corrupt_file_bytes() XORs 16 bytes at offset 100 of shard 1 in place; the test asserts file length is unchanged so only the digest can catch it.",
+  "detection_evidence": "tests/unit/test_shard.py: test_corrupted_shard_is_rejected_and_named, test_truncated_shard_is_rejected, test_missing_shard_is_rejected, test_verify_reports_every_bad_shard_not_just_the_first, test_index_needs_no_shard_bytes.",
+  "diagnosis": "Three failure modes are kept distinct rather than collapsed into one bad-data error: size mismatch indicates truncation or partial write; sha256 mismatch with correct size indicates in-place modification or bit rot; a missing shard indicates incomplete sync or a wrong dataset root.",
+  "intervention": "Verification runs before the first optimizer step, so the run aborts having spent no compute. The remedy is to re-fetch the shard and re-verify against the same manifest; the manifest is never regenerated to clear the error, which would record the corruption as canonical.",
+  "verification": {
+    "oracle": "invariant_assertion",
+    "result": "pass",
+    "detail": "Corruption, truncation and absence are each detected and named; restoring the bytes re-verifies clean."
+  },
+  "cost": { "wall_seconds_lost": 1.0, "gpu_hours": 0.0, "estimated_usd": 0.0 },
+  "counterfactual": "Without the digest gate the corrupted region would decode to arbitrary float values including NaN, surfacing as a loss spike or silent NaN propagation and being misattributed to the learning rate or to instability - a plausible but wrong diagnosis costing hours and possibly a restart.",
+  "limitations": "Detects corruption at rest before a run; does not detect corruption occurring mid-run after verification. Synthetic fixtures only. SHA-256 over whole files identifies the offending file, not the offending byte range. Single process; verifying identical bytes across hosts is a Phase C concern.",
+  "artifacts": ["reports/incidents/I-002-corrupt-shard.md"]
+}

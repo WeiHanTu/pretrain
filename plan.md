@@ -1,6 +1,6 @@
 # Implementation and Verification Plan
 
-**Overall status:** Not started  
+**Overall status:** Phase A in progress (A1, A2 complete with captured evidence)  
 **Planning principle:** Finish the three-week defensible minimum before adding model novelty.
 
 ## Status vocabulary
@@ -27,11 +27,11 @@ Evidence:
 
 ### A1. Repository bootstrap
 
-- [ ] Add `pyproject.toml` with pinned Python range, runtime/dev dependency groups and CLI entry point.
-- [ ] Generate and commit `uv.lock`.
-- [ ] Add `.gitignore`, `README.md`, license decision and CI workflow.
-- [ ] Add typed config schema and the five initial TOML configs.
-- [ ] Add artifact/incident JSON schemas.
+- [x] Add `pyproject.toml` with pinned Python range, runtime/dev dependency groups and CLI entry point.
+- [x] Generate and commit `uv.lock`.
+- [~] Add `.gitignore`, `README.md`, license decision and CI workflow. (`.gitignore`, `README.md`, CI and a repo-hygiene gate are in place; license remains a deferred decision.)
+- [x] Add typed config schema and the five initial TOML configs.
+- [x] Add artifact/incident JSON schemas.
 
 Verification:
 
@@ -47,13 +47,13 @@ Evidence: `artifacts/gates/phase-a1.txt`.
 
 ### A2. Synthetic data and rank coverage
 
-- [ ] Implement stable sample IDs and immutable shard manifests.
-- [ ] Implement deterministic shard/sampler ordering.
-- [ ] Implement loader state serialization.
-- [ ] Implement coverage collector and verifier.
-- [ ] Add 1-, 2- and 4-rank Gloo tests.
-- [ ] Add duplicate and missing-sample negative tests.
-- [ ] Add corrupt-shard checksum rejection test.
+- [x] Implement stable sample IDs and immutable shard manifests.
+- [x] Implement deterministic shard/sampler ordering.
+- [x] Implement loader state serialization.
+- [x] Implement coverage collector and verifier.
+- [x] Add 1-, 2- and 4-rank Gloo tests.
+- [x] Add duplicate and missing-sample negative tests.
+- [x] Add corrupt-shard checksum rejection test.
 
 Acceptance:
 
@@ -231,6 +231,15 @@ Evidence: `artifacts/gates/release.txt` plus a clean, reviewable repository stat
 - [ ] 2→4 world-size resume.
 - [ ] JAX implementation of one small correctness experiment.
 - [ ] Conservation metric only after directed topology and boundary-flow requirements are met.
+
+## Known issues
+
+- **PyTorch wheel pulls the full CUDA stack on linux-aarch64.** The default PyPI
+  `torch` wheel declares CUDA runtime dependencies (~4.6 GB) even on hosts with no
+  NVIDIA GPU, which also inflates CPU CI. The standard fix is PyTorch's variant
+  index (`download.pytorch.org/whl/cpu`) selected by a `cpu`/`cu128` extra; the
+  development sandbox cannot reach that host, so the default index is used for now.
+  Revisit before Phase C, when GPU hosts need the matching CUDA build anyway.
 
 ## Explicitly deferred decisions
 

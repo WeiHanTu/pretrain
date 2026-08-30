@@ -1,0 +1,26 @@
+{
+  "consumed_count": 96,
+  "duplicated_ids": [],
+  "epoch": 0,
+  "expected_count": 96,
+  "generated_at": "2026-08-30T10:19:34+00:00",
+  "missing_ids": [],
+  "notes": "backend=gloo; 4 process(es) on 1 distinct host(s); defect=none; torch=2.13.0+cu130. Local multi-process test environment, NOT multi-node evidence.",
+  "passed": true,
+  "per_rank_counts": [
+    24,
+    24,
+    24,
+    24
+  ],
+  "rank_overlaps": [],
+  "sampler": {
+    "drop_last": true,
+    "seed": 2027,
+    "shuffle": true
+  },
+  "schema_version": 1,
+  "truncated_id_lists": false,
+  "unexpected_ids": [],
+  "world_size": 4
+}

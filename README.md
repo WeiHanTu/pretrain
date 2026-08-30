@@ -35,9 +35,9 @@ a named artifact under `artifacts/` or `reports/`.
 | Phase | Scope | Status |
 |---|---|---|
 | Track 0 | Compute access requests (NRP / ACCESS / GCP) | Not started |
-| A1 | Repo bootstrap, config schema, CI | In progress |
-| A2 | Data layer, rank-coverage invariant, negative tests | Not started |
-| A3 | Model, training loop, run manifest | Not started |
+| A1 | Repo bootstrap, config schema, CI | **Complete** — `artifacts/gates/phase-a1.txt` |
+| A2 | Data layer, rank-coverage invariant, negative tests | **Complete** — `artifacts/coverage/`, `reports/incidents/I-002`, `I-003` |
+| A3 | Model, training loop, run manifest | In progress |
 | A4 | Seed-variance oracle | Not started |
 | B | GPU FSDP2, DCP checkpoint + reshard | Not started |
 | C | Real two-host execution, failure injection, scaling | Not started |
