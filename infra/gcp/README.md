@@ -17,8 +17,10 @@ beyond the credit, so it is a human decision (`plan.md` C0).
    region. New paid accounts start at 0. This can take a day and can be refused.
 4. Set a budget alert. **Alerts notify; they do not cap.** The enforced caps are
    `--max-run-duration`, the config's step and wall-clock limits, and teardown.
-5. Record the answers in `reports/access/compute_options.md` and flip the
-   corresponding entries in `scripts/preflight_cloud.py`.
+5. Record each answer in `reports/access/gcp_answers.json` by setting its `answer`
+   to `true`. An item counts only when the value is exactly `true` — `"yes"`, `1` and
+   `null` all leave it unanswered, deliberately. Set it after doing the thing, not
+   when you intend to.
 
 Then:
 

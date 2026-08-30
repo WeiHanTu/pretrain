@@ -65,43 +65,49 @@
   "cost_note": "Budget alerts notify; they do not cap. The enforced caps are --max-run-duration with --instance-termination-action=DELETE per instance, train.max_steps and train.max_wall_seconds in the config, and running infra/gcp/teardown.sh unconditionally after every session.",
   "gate": "phase-c-preflight",
   "manual_all_answered": false,
+  "manual_answers_file": "reports/access/gcp_answers.json",
   "manual_checks": [
     {
       "answer": null,
-      "answered_by": null,
+      "answered_at": null,
       "id": "billing_upgraded",
+      "note": null,
       "question": "Is the billing account upgraded from Free Trial to paid?",
       "status": "unanswered",
       "why": "The Free Trial forbids attaching GPUs at all. Upgrading also enables charges beyond the remaining credit, which is why this is a human decision."
     },
     {
       "answer": null,
-      "answered_by": null,
+      "answered_at": null,
       "id": "gpu_quota_granted",
+      "note": null,
       "question": "Is NVIDIA_L4_GPUS (or PREEMPTIBLE_NVIDIA_L4_GPUS) quota >= 2 in the target region?",
       "status": "unanswered",
       "why": "New paid accounts start at 0. Quota requests take time and are sometimes denied."
     },
     {
       "answer": null,
-      "answered_by": null,
+      "answered_at": null,
       "id": "capacity_available",
-      "question": "Did a dry-run create succeed in the target zone?",
+      "note": null,
+      "question": "Did ONE test g2-standard-4 spot instance reach RUNNING in the target zone, and then get deleted?",
       "status": "unanswered",
-      "why": "Quota is permission, not inventory. Spot L4 capacity varies by zone and hour."
+      "why": "Quota is permission, not inventory: spot L4 capacity varies by zone and hour. GCP has no true dry-run for instance creation, so the only honest capacity test is to create one, watch it come up, and delete it. That costs cents and is the difference between discovering a capacity problem now and discovering it with a second node already billing."
     },
     {
       "answer": null,
-      "answered_by": null,
+      "answered_at": null,
       "id": "budget_alert_configured",
+      "note": null,
       "question": "Is a budget alert set on the billing account?",
       "status": "unanswered",
       "why": "Alerts NOTIFY, they do not CAP. Nothing in GCP stops spend automatically; the real cap is --max-run-duration on each instance plus teardown."
     },
     {
       "answer": null,
-      "answered_by": null,
+      "answered_at": null,
       "id": "credit_expiry_noted",
+      "note": null,
       "question": "Is the credit expiry date recorded? (90 days from SIGNUP, not first use)",
       "status": "unanswered",
       "why": "The clock starts at signup, so unused credit silently expires."

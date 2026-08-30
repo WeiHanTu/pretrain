@@ -33,6 +33,7 @@ from pretrainmodel.distributed.launch import network_preflight
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUT = REPO_ROOT / "artifacts" / "cloud" / "preflight.json"
+ANSWERS = REPO_ROOT / "reports" / "access" / "gcp_answers.json"
 CLOUD_CONFIGS = ["configs/single_l4.toml", "configs/two_node_l4.toml"]
 
 # Manual items. Each stays "unanswered" until a human records the answer in
@@ -53,8 +54,17 @@ MANUAL_CHECKS = [
     },
     {
         "id": "capacity_available",
-        "question": "Did a dry-run create succeed in the target zone?",
-        "why": "Quota is permission, not inventory. Spot L4 capacity varies by zone and hour.",
+        "question": (
+            "Did ONE test g2-standard-4 spot instance reach RUNNING in the target "
+            "zone, and then get deleted?"
+        ),
+        "why": (
+            "Quota is permission, not inventory: spot L4 capacity varies by zone and "
+            "hour. GCP has no true dry-run for instance creation, so the only honest "
+            "capacity test is to create one, watch it come up, and delete it. That "
+            "costs cents and is the difference between discovering a capacity problem "
+            "now and discovering it with a second node already billing."
+        ),
     },
     {
         "id": "budget_alert_configured",
@@ -256,11 +266,45 @@ def credential_scan() -> list[str]:
     return hits
 
 
+def load_manual_answers() -> list[dict[str, Any]]:
+    """Merge the declared manual checks with whatever the user has recorded.
+
+    Answers live in reports/access/gcp_answers.json rather than in this source file,
+    so recording one is an edit to evidence rather than an edit to the checker. An
+    absent or malformed file leaves every item unanswered, which is the safe default:
+    the gate stays red rather than opening because a file failed to parse.
+
+    An item counts as answered only when "answer" is exactly true. Anything else --
+    false, null, "probably", a typo -- leaves it unanswered on purpose.
+    """
+    recorded: dict[str, Any] = {}
+    if ANSWERS.is_file():
+        try:
+            raw = json.loads(ANSWERS.read_text())
+            recorded = raw.get("answers", {}) if isinstance(raw, dict) else {}
+        except json.JSONDecodeError:
+            recorded = {}
+
+    merged: list[dict[str, Any]] = []
+    for check in MANUAL_CHECKS:
+        entry = recorded.get(check["id"], {})
+        answer = entry.get("answer") if isinstance(entry, dict) else None
+        answered = answer is True
+        merged.append(
+            {
+                **check,
+                "status": "answered" if answered else "unanswered",
+                "answer": answer,
+                "answered_at": entry.get("answered_at") if isinstance(entry, dict) else None,
+                "note": entry.get("note") if isinstance(entry, dict) else None,
+            }
+        )
+    return merged
+
+
 def main() -> int:
     automated = automated_checks()
-    manual = [
-        {**m, "status": "unanswered", "answered_by": None, "answer": None} for m in MANUAL_CHECKS
-    ]
+    manual = load_manual_answers()
 
     automated_ok = all(c["ok"] for c in automated)
     manual_ok = all(m["status"] == "answered" for m in manual)
@@ -272,6 +316,7 @@ def main() -> int:
         "automated_passed": automated_ok,
         "manual_checks": manual,
         "manual_all_answered": manual_ok,
+        "manual_answers_file": str(ANSWERS.relative_to(REPO_ROOT)),
         "ready_to_provision": automated_ok and manual_ok,
         "note": (
             "Manual items are recorded as UNANSWERED rather than defaulted to ok. A "
@@ -295,10 +340,13 @@ def main() -> int:
     print(f"  ready to provision: {payload['ready_to_provision']}")
     print(f"\nwrote {OUT.relative_to(REPO_ROOT)}")
     if not payload["ready_to_provision"]:
-        print("\nUnanswered before spending anything:", file=sys.stderr)
+        print(
+            f"\nUnanswered before spending anything (record in {ANSWERS.relative_to(REPO_ROOT)}):",
+            file=sys.stderr,
+        )
         for m in manual:
             if m["status"] != "answered":
-                print(f"  - {m['question']}\n      why: {m['why']}", file=sys.stderr)
+                print(f"  - [{m['id']}] {m['question']}\n      why: {m['why']}", file=sys.stderr)
     return 0
 
 

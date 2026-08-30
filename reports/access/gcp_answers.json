@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Answers to the manual preflight items in scripts/preflight_cloud.py.",
+    "An item counts as answered ONLY when its \"answer\" is exactly true.",
+    "Set it to true after you have actually done the thing, not when you intend to.",
+    "The preflight gate stays red until every item here is true."
+  ],
+  "answers": {
+    "billing_upgraded":        { "answer": null, "answered_at": null, "note": null },
+    "gpu_quota_granted":       { "answer": null, "answered_at": null, "note": null },
+    "capacity_available":      { "answer": null, "answered_at": null, "note": null },
+    "budget_alert_configured": { "answer": null, "answered_at": null, "note": null },
+    "credit_expiry_noted":     { "answer": null, "answered_at": null, "note": null }
+  }
+}
