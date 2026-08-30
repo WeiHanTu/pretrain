@@ -172,15 +172,19 @@ class ExactComparison:
     differences: list[Difference] = field(default_factory=list)
     loss_match: bool = True
     sample_id_match: bool = True
-    control_losses: list[float] = field(default_factory=list)
-    resumed_losses: list[float] = field(default_factory=list)
+    control_losses: list[list[float]] = field(default_factory=list)
+    resumed_losses: list[list[float]] = field(default_factory=list)
+    compared_loss_values: int = 0
+    compared_sample_ids: int = 0
     note: str = ""
 
     def summary(self) -> str:
         if self.passed:
             return (
-                f"bit-exact: {self.compared_tensors} tensors, losses and sample IDs "
-                f"identical from step {self.boundary_step}"
+                f"bit-exact: {self.compared_tensors} tensors, "
+                f"{self.compared_loss_values} loss values and "
+                f"{self.compared_sample_ids} sample IDs identical "
+                f"from step {self.boundary_step}"
             )
         lines = [f"NOT bit-exact at the step-{self.boundary_step} resume boundary:"]
         if not self.sample_id_match:
@@ -199,6 +203,8 @@ class ExactComparison:
             "passed": self.passed,
             "boundary_step": self.boundary_step,
             "compared_tensors": self.compared_tensors,
+            "compared_loss_values": self.compared_loss_values,
+            "compared_sample_ids": self.compared_sample_ids,
             "loss_match": self.loss_match,
             "sample_id_match": self.sample_id_match,
             "num_differences": len(self.differences),
@@ -213,8 +219,8 @@ def compare_exact(
     *,
     control_state: Mapping[str, Mapping[str, Tensor]],
     resumed_state: Mapping[str, Mapping[str, Tensor]],
-    control_losses: Sequence[float],
-    resumed_losses: Sequence[float],
+    control_losses: Sequence[Sequence[float]],
+    resumed_losses: Sequence[Sequence[float]],
     control_sample_ids: Sequence[str],
     resumed_sample_ids: Sequence[str],
     boundary_step: int,
@@ -241,15 +247,26 @@ def compare_exact(
         control_state["optim"], resumed_state["optim"], label="optim"
     )
 
-    tail_control = list(control_losses[boundary_step:])
-    tail_resumed = list(resumed_losses)
+    # Compare every rank, not just rank 0. Each rank computes its loss on its own
+    # micro-batch, so a resume fault that lands on one rank only would be invisible
+    # if a single rank were treated as representative.
+    tail_control = [list(r[boundary_step:]) for r in control_losses]
+    tail_resumed = [list(r) for r in resumed_losses]
     loss_match = tail_control == tail_resumed
+    compared_loss_values = sum(len(r) for r in tail_control)
 
     ids_control = list(control_sample_ids)
     ids_resumed = list(resumed_sample_ids)
     sample_id_match = ids_control == ids_resumed
 
     compared = len(control_state["model"]) + len(control_state["optim"])
+    if compared == 0 or compared_loss_values == 0 or not ids_control:
+        raise OracleNotApplicableError(
+            "refusing to certify a vacuous comparison: "
+            f"{compared} tensors, {compared_loss_values} loss values, "
+            f"{len(ids_control)} sample ids. An empty comparison trivially 'passes' "
+            "and would be the easiest way to fake this gate."
+        )
     return ExactComparison(
         passed=not differences and loss_match and sample_id_match,
         boundary_step=boundary_step,
@@ -259,6 +276,8 @@ def compare_exact(
         sample_id_match=sample_id_match,
         control_losses=tail_control,
         resumed_losses=tail_resumed,
+        compared_loss_values=compared_loss_values,
+        compared_sample_ids=len(ids_control),
         note=(
             "Exact equality under the declared constraints: fp32, deterministic "
             "algorithms, synchronous checkpointing, fixed data order, same world size."

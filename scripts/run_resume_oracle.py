@@ -20,6 +20,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from pretrainmodel.config import load_config
 from pretrainmodel.data.coverage import verify_coverage
 from pretrainmodel.training.compare import OracleNotApplicableError, compare_exact
 from pretrainmodel.training.resume_experiment import run_resume_experiment
@@ -29,6 +30,11 @@ CONFIG = REPO_ROOT / "configs/deterministic_resume.toml"
 DATA = REPO_ROOT / "data/processed/synthetic/v1"
 MAX_STEPS = 20
 CHECKPOINT_AT = 10
+# Samples consumed per optimizer step, per rank. Derived from the config rather
+# than hardcoded: a literal here would silently misalign every slice below the
+# moment micro_batch_size or grad_accum_steps changed.
+_CFG = load_config(CONFIG)
+PER_STEP = _CFG.train.micro_batch_size * _CFG.train.grad_accum_steps
 
 NOTE_GLOBAL_BATCH = (
     "Loss trajectories are NOT compared across a world-size change here. Resharding "
@@ -70,13 +76,13 @@ def run_b3() -> dict[str, Any]:
                 resume_defect=defect,
             )
         control, resumed = out["control"], out["resume"]
-        half = CHECKPOINT_AT
+        cut = CHECKPOINT_AT * PER_STEP
         comparison = compare_exact(
             control_state=control["snapshot"],
             resumed_state=resumed["snapshot"],
-            control_losses=control["losses_by_rank"][0],
-            resumed_losses=resumed["losses_by_rank"][0],
-            control_sample_ids=_flat([r[half * 4 :] for r in control["ids_by_rank"]]),
+            control_losses=control["losses_by_rank"],
+            resumed_losses=resumed["losses_by_rank"],
+            control_sample_ids=_flat([r[cut:] for r in control["ids_by_rank"]]),
             resumed_sample_ids=_flat(resumed["ids_by_rank"]),
             boundary_step=CHECKPOINT_AT,
             rng_continuity=resumed["rng_continuity"],
@@ -108,6 +114,7 @@ def run_b3() -> dict[str, Any]:
         "fsdp2": True,
         "max_steps": MAX_STEPS,
         "checkpoint_at": CHECKPOINT_AT,
+        "samples_per_step_per_rank": PER_STEP,
         "constraints": {
             "dtype": "fp32",
             "deterministic_algorithms": True,
@@ -146,10 +153,10 @@ def run_b4() -> dict[str, Any]:
             compare_exact(
                 control_state=control["snapshot"],
                 resumed_state=resumed["snapshot"],
-                control_losses=control["losses_by_rank"][0],
-                resumed_losses=resumed["losses_by_rank"][0],
-                control_sample_ids=[],
-                resumed_sample_ids=[],
+                control_losses=control["losses_by_rank"],
+                resumed_losses=resumed["losses_by_rank"],
+                control_sample_ids=["placeholder"],
+                resumed_sample_ids=["placeholder"],
                 boundary_step=CHECKPOINT_AT,
                 rng_continuity=resumed["rng_continuity"],
                 resharded=resumed["resharded"],
@@ -168,7 +175,7 @@ def run_b4() -> dict[str, Any]:
         # the untouched tail as "missing". The prefix is well defined across the
         # reshard precisely because the epoch permutation does not depend on world
         # size -- that property is what makes this check meaningful at all.
-        consumed_before = [r[: CHECKPOINT_AT * 4] for r in control["ids_by_rank"]]
+        consumed_before = [r[: CHECKPOINT_AT * PER_STEP] for r in control["ids_by_rank"]]
         consumed_all = [*consumed_before, *resumed["ids_by_rank"]]
         total_consumed = sum(len(r) for r in consumed_all)
         coverage = verify_coverage(control["expected_epoch_ids"][:total_consumed], consumed_all)
@@ -191,8 +198,8 @@ def run_b4() -> dict[str, Any]:
             "samples_consumed_total": total_consumed,
             "expected_epoch_size_before": len(control["expected_epoch_ids"]),
             "expected_epoch_size_after": len(resumed["expected_epoch_ids"]),
-            "global_batch_before": old_ws * 4,
-            "global_batch_after": new_ws * 4,
+            "global_batch_before": old_ws * PER_STEP,
+            "global_batch_after": new_ws * PER_STEP,
         }
         cases.append(case)
         print(

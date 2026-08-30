@@ -68,8 +68,8 @@ def _compare(**over: object) -> object:
     kwargs: dict[str, object] = {
         "control_state": _state(),
         "resumed_state": _state(),
-        "control_losses": [1.0, 0.9, 0.8, 0.7],
-        "resumed_losses": [0.8, 0.7],
+        "control_losses": [[1.0, 0.9, 0.8, 0.7], [1.1, 0.95, 0.85, 0.75]],
+        "resumed_losses": [[0.8, 0.7], [0.85, 0.75]],
         "control_sample_ids": ["c", "d"],
         "resumed_sample_ids": ["c", "d"],
         "boundary_step": 2,
@@ -84,7 +84,7 @@ def test_matching_runs_pass() -> None:
 
 
 def test_diverging_loss_fails() -> None:
-    result = _compare(resumed_losses=[0.8, 0.71])
+    result = _compare(resumed_losses=[[0.8, 0.71], [0.85, 0.75]])
     assert not result.passed  # type: ignore[attr-defined]
     assert not result.loss_match  # type: ignore[attr-defined]
 
@@ -115,3 +115,26 @@ def test_oracle_refuses_a_resharded_run() -> None:
 def test_oracle_refuses_when_rng_continuity_was_lost() -> None:
     with pytest.raises(OracleNotApplicableError, match="seed-variance band"):
         _compare(rng_continuity=False)
+
+
+def test_a_fault_on_a_non_zero_rank_is_caught() -> None:
+    """Rank 0 alone is not representative: each rank has its own micro-batch."""
+    result = _compare(resumed_losses=[[0.8, 0.7], [0.85, 0.99]])
+    assert not result.passed  # type: ignore[attr-defined]
+    assert not result.loss_match  # type: ignore[attr-defined]
+
+
+def test_vacuous_comparison_is_refused() -> None:
+    """An empty comparison trivially passes; that is the easiest way to fake a gate."""
+    with pytest.raises(OracleNotApplicableError, match="vacuous"):
+        _compare(control_sample_ids=[], resumed_sample_ids=[])
+    with pytest.raises(OracleNotApplicableError, match="vacuous"):
+        _compare(control_losses=[], resumed_losses=[])
+    with pytest.raises(OracleNotApplicableError, match="vacuous"):
+        _compare(control_state={"model": {}, "optim": {}}, resumed_state={"model": {}, "optim": {}})
+
+
+def test_summary_reports_what_was_actually_compared() -> None:
+    """The pass message must state its own sample sizes, so 'passed' is auditable."""
+    summary = _compare().summary()  # type: ignore[attr-defined]
+    assert "tensors" in summary and "loss values" in summary and "sample IDs" in summary
