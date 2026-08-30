@@ -1,43 +1,43 @@
 gate:        phase-a
-captured_at: 2026-08-30T10:40:03Z
-git_commit:  59993cb4a12420894e41132b88787065b15b832d
+captured_at: 2026-08-30T10:52:01Z
+git_commit:  53b5ce3c0a1d6d8fbc58eb8bff8cceb9a9cfa808
 git_dirty:   true
 python:      3.12.13
 torch:       2.13.0+cu130
 platform:    Linux aarch64
 
 $ uv sync --locked
-Resolved 48 packages in 0.49ms
+Resolved 48 packages in 0.50ms
 Uninstalled 1 package in 5ms
-Installed 1 package in 7.16s
+Installed 1 package in 7.13s
  ~ nvidia-cusparselt-cu13==0.8.1
 
 $ uv run ruff check .
-Uninstalled 1 package in 20ms
-Installed 1 package in 7.16s
+Uninstalled 1 package in 18ms
+Installed 1 package in 7.08s
 All checks passed!
 
 $ uv run ruff format --check .
-Uninstalled 1 package in 21ms
-Installed 1 package in 7.05s
+Uninstalled 1 package in 18ms
+Installed 1 package in 7.14s
 49 files already formatted
 
 $ uv run mypy src
-Uninstalled 1 package in 19ms
-Installed 1 package in 7.10s
+Uninstalled 1 package in 18ms
+Installed 1 package in 7.23s
 Success: no issues found in 25 source files
 
 $ uv run pytest -q
 Uninstalled 1 package in 20ms
-Installed 1 package in 7.06s
+Installed 1 package in 6.14s
 ........................................................................ [ 41%]
 ........................................................................ [ 83%]
-............................                                             [100%]
-172 passed in 23.19s
+.............................                                            [100%]
+173 passed in 23.30s
 
 $ uv run python scripts/check_repo_hygiene.py
 Uninstalled 1 package in 6ms
-Installed 1 package in 6.76s
-Repository hygiene check passed (72 tracked files).
+Installed 1 package in 7.13s
+Repository hygiene check passed (77 tracked files).
 
 result: PASS
