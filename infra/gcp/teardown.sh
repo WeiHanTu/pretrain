@@ -7,17 +7,24 @@
 # debugging session that went nowhere.
 set -euo pipefail
 PROJECT="${PROJECT:?set PROJECT}"
-ZONE="${ZONE:-us-central1-a}"
 LABEL="${LABEL:-purpose=pretrainmodel-phase-c}"
 
-mapfile -t VMS < <(gcloud compute instances list \
-  --project="$PROJECT" --filter="labels.${LABEL/=/:}" --format="value(name)")
+# List name AND zone. Deleting with a single --zone would fail for any instance
+# outside it -- exactly what happens with the cross-region fallback -- and a failed
+# teardown leaves GPUs billing.
+mapfile -t ROWS < <(gcloud compute instances list \
+  --project="$PROJECT" --filter="labels.${LABEL/=/:}" \
+  --format="value(name,zone)")
 
-if [[ ${#VMS[@]} -eq 0 ]]; then
+if [[ ${#ROWS[@]} -eq 0 ]]; then
   echo "no instances with label ${LABEL}"
 else
-  echo "deleting: ${VMS[*]}"
-  gcloud compute instances delete "${VMS[@]}" --project="$PROJECT" --zone="$ZONE" --quiet
+  for row in "${ROWS[@]}"; do
+    name="$(awk '{print $1}' <<<"$row")"
+    zone="$(awk '{print $2}' <<<"$row")"
+    echo "deleting ${name} in ${zone}"
+    gcloud compute instances delete "$name" --project="$PROJECT" --zone="$zone" --quiet
+  done
 fi
 
 gcloud compute firewall-rules delete ptm-rendezvous --project="$PROJECT" --quiet 2>/dev/null || true

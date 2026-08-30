@@ -27,6 +27,7 @@ __all__ = [
     "ShardManifest",
     "SourceFile",
     "SourceManifest",
+    "content_hash",
     "manifest_hash",
     "sha256_file",
 ]
@@ -234,6 +235,32 @@ class ShardManifest:
                 "shard verification failed for "
                 f"{self.dataset_name}@{self.dataset_version}:\n  - " + "\n  - ".join(problems)
             )
+
+
+def content_hash(manifest: ShardManifest) -> str:
+    """Digest of what the shards CONTAIN, ignoring when they were created.
+
+    Distinct from :func:`manifest_hash`, and the difference matters across ranks.
+    ``manifest_hash`` covers provenance including ``created_at``, so two nodes that
+    generate an identical fixture from the same seed still disagree on it. Content
+    is what must match between ranks; provenance is per-copy.
+    """
+    payload = json.dumps(
+        {
+            "dataset_name": manifest.dataset_name,
+            "dataset_version": manifest.dataset_version,
+            "context_steps": manifest.context_steps,
+            "horizon_steps": manifest.horizon_steps,
+            "stride": manifest.stride,
+            "sampling_interval_seconds": manifest.sampling_interval_seconds,
+            "shards": sorted(
+                (s.path, s.sha256, s.bytes, s.num_timesteps, s.num_sensors) for s in manifest.shards
+            ),
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def manifest_hash(manifest: ShardManifest) -> str:

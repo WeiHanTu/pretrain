@@ -233,3 +233,56 @@ def test_sha256_file_matches_recorded_digest(dataset: tuple[Path, ShardManifest]
     root, manifest = dataset
     entry = manifest.shards[0]
     assert sha256_file(root / entry.path) == entry.sha256
+
+
+# --------------------------------------------------------------------------- #
+# Content hash — cross-rank data agreement
+# --------------------------------------------------------------------------- #
+
+
+def test_content_hash_ignores_creation_time(dataset: tuple[Path, ShardManifest]) -> None:
+    """Two nodes generating the same fixture must agree on content.
+
+    manifest_hash covers provenance including created_at, which legitimately differs
+    between copies. Content is what has to match across ranks.
+    """
+    from pretrainmodel.data.manifest import content_hash, manifest_hash
+
+    _, manifest = dataset
+    later = replace(manifest, created_at="2099-01-01T00:00:00+00:00")
+    assert content_hash(later) == content_hash(manifest)
+    assert manifest_hash(later) != manifest_hash(manifest)
+
+
+def test_content_hash_changes_when_a_shard_changes(
+    dataset: tuple[Path, ShardManifest],
+) -> None:
+    from pretrainmodel.data.manifest import content_hash
+
+    _, manifest = dataset
+    tampered = replace(
+        manifest,
+        shards=[replace(manifest.shards[0], sha256="0" * 64), *manifest.shards[1:]],
+    )
+    assert content_hash(tampered) != content_hash(manifest)
+
+
+def test_content_hash_ignores_shard_listing_order(
+    dataset: tuple[Path, ShardManifest],
+) -> None:
+    """Ranks must agree even if their manifests list shards in a different order."""
+    from pretrainmodel.data.manifest import content_hash
+
+    _, manifest = dataset
+    shuffled = list(manifest.shards)
+    random.Random(7).shuffle(shuffled)
+    assert content_hash(replace(manifest, shards=shuffled)) == content_hash(manifest)
+
+
+def test_content_hash_changes_with_windowing(dataset: tuple[Path, ShardManifest]) -> None:
+    """Same bytes, different windows, is a different sample space."""
+    from pretrainmodel.data.manifest import content_hash
+
+    _, manifest = dataset
+    assert content_hash(replace(manifest, stride=5)) != content_hash(manifest)
+    assert content_hash(replace(manifest, context_steps=99)) != content_hash(manifest)

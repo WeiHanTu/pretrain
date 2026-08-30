@@ -1,0 +1,61 @@
+# Two-host systems run on the synthetic fixture (Phase C).
+#
+# This is the config the two-node run actually uses. `two_node_l4.toml` points at
+# LargeST, which is not present in this repository and is not required for Phase C:
+# Phase C measures the distributed SYSTEM -- rendezvous, sharding, checkpoint
+# recovery, scaling -- and none of that depends on the data being real. Launching
+# against a dataset that does not exist would fail at the manifest check after the
+# GPUs were already provisioned and billing.
+#
+# No model-quality claim may be drawn from any run of this config. The fixture is
+# generated from a fixed seed on each node; the cross-rank content-hash check
+# verifies the nodes really do hold identical data.
+#
+# expect_distinct_hosts makes the topology claim falsifiable: the run aborts before
+# the first optimizer step if the ranks collapse onto one machine.
+
+[run]
+name = "two_node_synthetic"
+seed = 1234
+formal = true
+
+[data]
+root = "data/processed/synthetic-c/v1"
+context_steps = 12
+horizon_steps = 12
+num_sensors = 1024
+num_features = 1
+
+[model]
+d_model = 384
+num_layers = 8
+num_heads = 6
+max_sensors = 4096
+dropout = 0.0
+
+[optim]
+lr = 6e-4
+warmup_steps = 20
+total_steps = 400
+
+[train]
+micro_batch_size = 8
+grad_accum_steps = 1
+max_steps = 200
+max_wall_seconds = 3600
+log_every = 10
+dtype = "bf16"
+
+[checkpoint]
+dir = "checkpoints/two_node_synthetic"
+every_steps = 25
+keep_last = 3
+
+[distributed]
+backend = "nccl"
+expect_distinct_hosts = true
+expect_world_size = 2
+
+[cost]
+sku = "gcp-g2-standard-4-spot-l4"
+rate_usd_per_gpu_hour = 0.0

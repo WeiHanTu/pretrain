@@ -36,6 +36,9 @@ IMAGE_FAMILY="${IMAGE_FAMILY:-common-cu124-ubuntu-2204-py310}"
 IMAGE_PROJECT="${IMAGE_PROJECT:-deeplearning-platform-release}"
 LABEL="purpose=pretrainmodel-phase-c"
 DRY_RUN="${DRY_RUN:-0}"
+# Absolute, so the script works from any working directory.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+STARTUP="${REPO_ROOT}/infra/gcp/startup.sh"
 
 run() {
   if [[ "$DRY_RUN" == "1" ]]; then printf '[dry-run] %q ' "$@"; echo; else "$@"; fi
@@ -51,6 +54,7 @@ for i in $(seq 0 $((COUNT - 1))); do
     --zone="$ZONE" \
     --machine-type="$MACHINE" \
     --provisioning-model=SPOT \
+    --maintenance-policy=TERMINATE \
     --instance-termination-action=DELETE \
     --max-run-duration="$MAX_RUN" \
     --image-family="$IMAGE_FAMILY" \
@@ -58,7 +62,7 @@ for i in $(seq 0 $((COUNT - 1))); do
     --boot-disk-size="${DISK_GB}GB" \
     --boot-disk-type=pd-balanced \
     --labels="$LABEL" \
-    --metadata-from-file=startup-script=infra/gcp/startup.sh \
+    --metadata-from-file=startup-script="$STARTUP" \
     --scopes=storage-ro
 done
 

@@ -30,7 +30,12 @@ from pretrainmodel.config import load_config
 from pretrainmodel.data.coverage import verify_coverage
 from pretrainmodel.data.dataset import WindowDataset
 from pretrainmodel.data.loader import ShardedSampler
-from pretrainmodel.data.manifest import ManifestError, ShardManifest, manifest_hash
+from pretrainmodel.data.manifest import (
+    ManifestError,
+    ShardManifest,
+    content_hash,
+    manifest_hash,
+)
 from pretrainmodel.data.shard import build_index
 from pretrainmodel.distributed.launch import init_distributed, shutdown_distributed
 from pretrainmodel.distributed.parallel import build_device_mesh, shard_model, sharding_report
@@ -97,6 +102,28 @@ def main(argv: list[str] | None = None) -> int:
             root = REPO_ROOT / root
         manifest = ShardManifest.read(root / "shards.json")
         manifest.verify(root)
+
+        # Every rank verifies its OWN shards, which says nothing about whether the
+        # ranks agree with each other. Each node here builds its fixture locally, so
+        # a stale checkout or a different seed on one node would train on mismatched
+        # data with no symptom -- the loss would simply be wrong in a way nothing
+        # reports. Content hash rather than manifest hash: the latter covers
+        # provenance including created_at, which legitimately differs per copy.
+        local_content = content_hash(manifest)
+        gathered_content: list[str | None] = [None] * info.world_size
+        dist.all_gather_object(gathered_content, local_content)
+        if len({c for c in gathered_content if c}) > 1:
+            raise RuntimeError(
+                "ranks disagree about the dataset. Per-rank content hashes: "
+                + ", ".join(
+                    f"rank {i}={c[:12] if c else 'unknown'}" for i, c in enumerate(gathered_content)
+                )
+                + ". Every rank verified its own shards, so each copy is internally "
+                "consistent -- they are simply not the same data. Regenerate the "
+                "fixture from the same seed on every node, or copy one node's "
+                "data directory to the others."
+            )
+
         index = build_index(manifest)
 
         dataset = WindowDataset(root, manifest, index)
