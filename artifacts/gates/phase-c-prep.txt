@@ -1,6 +1,6 @@
 gate:        phase-c-prep
-captured_at: 2026-08-30T22:30:20Z
-git_commit:  42648c0df8b82473f450bcb220be6d8992102154
+captured_at: 2026-08-30T22:51:48Z
+git_commit:  bdd6f5cd55739ab618032c323988f84d89bae673
 git_dirty:   false
 dirty_note:  tree state observed before this file was written
 python:      3.12.13
@@ -8,33 +8,178 @@ torch:       2.13.0+cu130
 platform:    Linux aarch64
 
 $ uv sync --locked
-Resolved 48 packages in 0.49ms
-Uninstalled 1 package in 7ms
-Installed 1 package in 6.49s
+Resolved 48 packages in 1ms
+Uninstalled 1 package in 8ms
+Installed 1 package in 6.94s
  ~ nvidia-cusparselt-cu13==0.8.1
 
 $ uv run ruff check .
-Uninstalled 1 package in 28ms
-Installed 1 package in 8.14s
+Uninstalled 1 package in 20ms
+Installed 1 package in 6.95s
 All checks passed!
 
 $ uv run ruff format --check .
-Uninstalled 1 package in 22ms
-Installed 1 package in 7.31s
+Uninstalled 1 package in 20ms
+Installed 1 package in 6.97s
 71 files already formatted
 
 $ uv run mypy src
-Uninstalled 1 package in 21ms
-Installed 1 package in 7.32s
+Uninstalled 1 package in 19ms
+Installed 1 package in 6.97s
 Success: no issues found in 33 source files
 
 $ uv run pytest -q
-Uninstalled 1 package in 22ms
-Installed 1 package in 7.40s
-........................................................................ [ 28%]
-........................................................................ [ 56%]
-........................................................................ [ 84%]
-.........................................                                [100%]
+Uninstalled 1 package in 19ms
+Installed 1 package in 7.00s
+.....................................F.................................. [ 27%]
+........................................................................ [ 55%]
+........................................................................ [ 82%]
+.............................................                            [100%]
+=================================== FAILURES ===================================
+____________________ test_manifest_validates_against_schema ____________________
+
+fixture = (PosixPath('/sessions/rcw-01mbv1arcirjzf2qygsp8gku/tmp/pytest-of-rcw-01mbv1arcirjzf2qygsp8gku/pytest-33/test_manifest_...(deterministic_algorithms=False, async_checkpoint=False), cost=CostConfig(sku='local-cpu', rate_usd_per_gpu_hour=0.0)))
+tmp_path = PosixPath('/sessions/rcw-01mbv1arcirjzf2qygsp8gku/tmp/pytest-of-rcw-01mbv1arcirjzf2qygsp8gku/pytest-33/test_manifest_validates_agains0')
+
+    def test_manifest_validates_against_schema(fixture: tuple[Path, Config], tmp_path: Path) -> None:
+        jsonschema = pytest.importorskip("jsonschema")
+        root, cfg = fixture
+        from pretrainmodel.data.manifest import ShardManifest
+    
+        run = RunManifest(
+            cfg,
+            repo_root=REPO_ROOT,
+            data_manifest_hash=manifest_hash(ShardManifest.read(root / "shards.json")),
+        )
+        run.metrics = {"final_loss": 0.5}
+        out = tmp_path / "run_manifest.json"
+        run.write(out)
+        schema = json.loads((REPO_ROOT / "schemas" / "run_manifest.schema.json").read_text())
+>       jsonschema.validate(json.loads(out.read_text()), schema)
+
+tests/integration/test_training.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+instance = {'artifacts': [], 'config': {'checkpoint': {'dir': 'checkpoints/itest', 'every_steps': 0, 'keep_last': 3}, 'cost': {'r...05a30baf2ca3542e731ffb', 'data_manifest_hash': '77d473d4c17ff1f665236a5df07e42e414f697a8ed267270fde0c1a77868ee1e', ...}
+schema = {'$schema': 'https://json-schema.org/draft/2020-12/schema', '$id': 'https://github.com/WeiHanTu/pretrain/schemas/run_m...mutable record emitted by every run. spec.md 10.3. A number that cannot be traced to a manifest is not evidence.', ...}
+cls = <class 'jsonschema.validators.Draft202012Validator'>, args = ()
+kwargs = {}
+
+    def validate(instance, schema, cls=None, *args, **kwargs):  # noqa: D417
+        """
+        Validate an instance under the given schema.
+    
+            >>> validate([2, 3, 4], {"maxItems": 2})
+            Traceback (most recent call last):
+                ...
+            ValidationError: [2, 3, 4] is too long
+    
+        :func:`~jsonschema.validators.validate` will first verify that the
+        provided schema is itself valid, since not doing so can lead to less
+        obvious error messages and fail in less obvious or consistent ways.
+    
+        If you know you have a valid schema already, especially
+        if you intend to validate multiple instances with
+        the same schema, you likely would prefer using the
+        `jsonschema.protocols.Validator.validate` method directly on a
+        specific validator (e.g. ``Draft202012Validator.validate``).
+    
+    
+        Arguments:
+    
+            instance:
+    
+                The instance to validate
+    
+            schema:
+    
+                The schema to validate with
+    
+            cls (jsonschema.protocols.Validator):
+    
+                The class that will be used to validate the instance.
+    
+        If the ``cls`` argument is not provided, two things will happen
+        in accordance with the specification. First, if the schema has a
+        :kw:`$schema` keyword containing a known meta-schema [#]_ then the
+        proper validator will be used. The specification recommends that
+        all schemas contain :kw:`$schema` properties for this reason. If no
+        :kw:`$schema` property is found, the default validator class is the
+        latest released draft.
+    
+        Any other provided positional and keyword arguments will be passed
+        on when instantiating the ``cls``.
+    
+        Raises:
+    
+            `jsonschema.exceptions.ValidationError`:
+    
+                if the instance is invalid
+    
+            `jsonschema.exceptions.SchemaError`:
+    
+                if the schema itself is invalid
+    
+        .. rubric:: Footnotes
+        .. [#] known by a validator registered with
+            `jsonschema.validators.validates`
+    
+        """
+        if cls is None:
+            cls = validator_for(schema)
+    
+        cls.check_schema(schema)
+        validator = cls(schema, *args, **kwargs)
+        error = exceptions.best_match(validator.iter_errors(instance))
+        if error is not None:
+>           raise error
+E           jsonschema.exceptions.ValidationError: Additional properties are not allowed ('distinct_regions', 'regions', 'spans_regions', 'throughput_numbers_comparable', 'zones' were unexpected)
+E           
+E           Failed validating 'additionalProperties' in schema['properties']['topology']:
+E               {'type': 'object',
+E                'additionalProperties': False,
+E                'required': ['backend', 'world_size', 'hosts', 'distinct_hosts'],
+E                'properties': {'backend': {'type': 'string'},
+E                               'world_size': {'type': 'integer', 'minimum': 1},
+E                               'node_count': {'type': 'integer', 'minimum': 1},
+E                               'gpus_per_node': {'type': 'integer', 'minimum': 0},
+E                               'hosts': {'type': 'array',
+E                                         'items': {'type': 'string'},
+E                                         'description': 'Hashed or plain hostnames, '
+E                                                        'one per rank, in rank '
+E                                                        'order.'},
+E                               'distinct_hosts': {'type': 'integer',
+E                                                  'minimum': 1,
+E                                                  'description': 'Observed count of '
+E                                                                 'unique hosts. A '
+E                                                                 'multi-node claim '
+E                                                                 'requires this to be '
+E                                                                 '>= 2.'},
+E                               'rendezvous': {'type': ['string', 'null']},
+E                               'global_batch_size': {'type': 'integer', 'minimum': 1},
+E                               'grad_accum_steps': {'type': 'integer', 'minimum': 1},
+E                               'device': {'type': 'string',
+E                                          'description': 'Device type the ranks ran '
+E                                                         'on (cpu or cuda).'}}}
+E           
+E           On instance['topology']:
+E               {'backend': 'none',
+E                'device': 'cpu',
+E                'distinct_hosts': 1,
+E                'distinct_regions': 0,
+E                'global_batch_size': 4,
+E                'gpus_per_node': 0,
+E                'grad_accum_steps': 1,
+E                'hosts': ['c857d09db23e'],
+E                'node_count': 1,
+E                'regions': ['unknown'],
+E                'rendezvous': None,
+E                'spans_regions': False,
+E                'throughput_numbers_comparable': True,
+E                'world_size': 1,
+E                'zones': ['unknown']}
+
+.venv/lib/python3.12/site-packages/jsonschema/validators.py:1332: ValidationError
 =============================== warnings summary ===============================
 tests/integration/test_checkpointing_path.py::test_a_real_training_run_writes_committed_checkpoints
 tests/integration/test_checkpointing_path.py::test_checkpoint_records_the_loader_cursor
@@ -50,11 +195,14 @@ tests/integration/test_checkpointing_path.py::test_interrupted_run_resumes_from_
     return func(*args, **kwargs)
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-257 passed, 7 warnings in 27.34s
+=========================== short test summary info ============================
+FAILED tests/integration/test_training.py::test_manifest_validates_against_schema
+1 failed, 260 passed, 7 warnings in 28.49s
+[FAILED: uv run pytest -q]
 
 $ uv run python scripts/check_repo_hygiene.py
-Uninstalled 1 package in 8ms
-Installed 1 package in 7.50s
+Uninstalled 1 package in 7ms
+Installed 1 package in 7.09s
 Repository hygiene check passed (113 tracked files).
 
-result: PASS
+result: FAIL
