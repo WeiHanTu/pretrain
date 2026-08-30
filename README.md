@@ -19,7 +19,7 @@ dataset exist to make distributed failures real and reproducible.
 | # | Claim | Oracle |
 |---|---|---|
 | 1 | Every sample is consumed exactly once per logical epoch | Rank-coverage invariant (multiset equality) |
-| 2 | Model, optimizer, scheduler, RNG and data cursor all resume | Checkpoint contract test |
+| 2 | Model, optimizer, scheduler, RNG and data cursor all resume | Checkpoint contract test — **verified**, and the training path is proven to write one (I-008) |
 | 3 | A deterministic same-world-size resume is **bit-exact** | Exact-equality oracle — **verified**, 186 tensors, 0 differences |
 | 4 | A BF16 / changed-world-size resume is **statistically equivalent** | Seed-variance band, declared *before* the experiment |
 | 5 | Checkpoints load at a different world size | DCP reshard matrix — **verified** 1↔2, 2↔4 on CPU/Gloo |

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "incident_id": "I-008",
+  "title": "The preflight reported checkpointing healthy while no training run wrote one",
+  "injected": false,
+  "created_at": "2026-08-30T21:52:00Z",
+  "run_ids": [],
+  "scope_and_topology": "Single process, CPU. Affects cli.py train and the torchrun entrypoint -- every path that would have run on GCP.",
+  "hypothesis": "None declared in advance; found by auditing the codebase before provisioning cloud hardware.",
+  "detection_signal": "A real training run configured with checkpoint.every_steps = 10 completed 20 steps and produced no checkpoint directory, while scripts/preflight_cloud.py reported checkpoint_cadence ok=True for both cloud configs.",
+  "injection": "Not injected. save_checkpoint was called from exactly one place -- training/resume_experiment.py, the B3/B4 harness -- so checkpoint.every_steps and keep_last were declared, type-checked, validated, asserted by the preflight, and honoured by nothing.",
+  "detection_evidence": "Before the fix: `uv run pretrainmodel train --config configs/local_smoke.toml` completed 20 steps and `ls checkpoints/local_smoke` reported no such directory. After the fix the same command reports checkpoints [10, 20] with committed markers at cursors 40 and 80, and --resume picks up at step 20.",
+  "diagnosis": "Phase B proved the checkpoint CONTRACT thoroughly -- atomic markers, incomplete rejection, provenance guards, bit-exact resume, resharding -- via a harness that called save_checkpoint directly. The gap is between 'the mechanism is correct' and 'the mechanism is installed'; only the second survives a preemption. The preflight then compounded it: reading cfg.checkpoint.every_steps > 0 proves a config value, not a capability, so a well-intentioned cheap check converted 'nobody has verified this' into a green tick immediately before provisioning.",
+  "intervention": "Added training/checkpointing.py with PeriodicCheckpointer installed as the loop's on_step hook (honouring every_steps and keep_last) and resume_if_available() for restart, keeping checkpoint policy outside train() so the loop stays identical between control and resumed runs. Wired into cli.py train --resume and the torchrun entrypoint --resume. Replaced the preflight's config-reading assurance with checkpoint_capability_writes_one, which runs a real two-step training run into a temporary directory and asserts a committed checkpoint lands on disk.",
+  "verification": {
+    "oracle": "invariant_assertion",
+    "result": "pass",
+    "detail": "A real run now commits checkpoints at the configured cadence with correct loader cursors, and resumes. Regression tests cover cadence, cursor, keep_last pruning, the disabled case and resume from a stopped run."
+  },
+  "cost": { "wall_seconds_lost": 2400.0, "gpu_hours": 0.0, "estimated_usd": 0.0 },
+  "counterfactual": "Undetected, this surfaces as a spot node reclaimed four hours into the Phase C run, --resume finding nothing, and the whole reservation lost -- after a green preflight said checkpointing was configured. The likely in-the-moment diagnosis, that preemption beat the first checkpoint interval, is wrong and would send the next attempt toward shortening the interval, which fixes nothing.",
+  "limitations": "Single process, CPU: the capability probe runs at world size 1, and while the B2 contract tests cover sharded checkpointing, the two have not been exercised together in one run. The probe asserts a checkpoint is committed, not that resuming from it reproduces the run, which is I-001a's job. Generalisation worth stating: every other config field should be assumed guilty until a test exercises the behaviour it names -- determinism.async_checkpoint is currently in exactly the same position, declared and implemented nowhere.",
+  "artifacts": ["artifacts/cloud/preflight.json", "reports/incidents/I-008-preflight-false-assurance.md"]
+}

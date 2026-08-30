@@ -265,8 +265,45 @@ This matters for the cost policy: every correctness gate can be passed before th
 GCP 90-day credit clock starts, so paid compute is spent only on measurements that
 genuinely require hardware.
 
+## Evaluated and rejected
+
+### FlashKDA / Kimi Delta Attention (MoonshotAI/FlashKDA) — rejected 2026-08-30
+
+Considered as a possible model-side enhancement. Rejected on four independent
+grounds, any one of which is disqualifying:
+
+1. **It is an inference kernel.** Its documentation directs callers to use
+   `torch.inference_mode()`. This project trains.
+2. **It requires SM90+** (H100/H20/GB200). The planned hardware is L4, which is
+   SM89 (Ada). It cannot build or run there, and moving to H100s contradicts the
+   cost model in `intend.md` §7.
+3. **CUDA 12.9+ and fixed K=V=128 head dimensions**, neither of which this model
+   or the planned images satisfy.
+4. **The architectural motivation is absent at these sequence lengths.** KDA is
+   linear attention for long context; this model attends over 12 timesteps and
+   1024 sensors on separate axes, and quadratic attention over 12 tokens is free.
+
+There is also a thesis argument, which generalises past this specific library:
+`intend.md` §1 states that the model exists to make distributed failures real. A
+novel attention variant makes the *model* the claim, and a reviewer cannot verify
+that without domain expertise — whereas "every sample was consumed exactly once"
+is checkable in under a minute.
+
+A kernel-equivalence experiment (fused kernel vs reference implementation, judged
+against a declared tolerance) would be a *good* Phase D extension, because it
+reuses the oracle machinery already built. It is not a Phase C activity, and it is
+not this library.
+
 ## Known issues
 
+- **Step-time breakdown is not instrumented.** `spec.md` §10.2 requires data wait,
+  forward/backward, optimizer and checkpoint durations; the loop currently records
+  only total step time (p50/p95). Phase C exists to measure, so this should be added
+  before provisioning rather than after.
+- **`determinism.async_checkpoint` is declared and implemented nowhere.** It is
+  validated by the config schema and honoured by no code path — the same shape of
+  defect as I-008. Either implement it or remove the field; leaving it invites the
+  next reader to assume it works.
 - **PyTorch wheel pulls the full CUDA stack on linux-aarch64.** The default PyPI
   `torch` wheel declares CUDA runtime dependencies (~4.6 GB) even on hosts with no
   NVIDIA GPU, which also inflates CPU CI. The standard fix is PyTorch's variant

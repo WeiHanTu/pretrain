@@ -42,6 +42,7 @@ from pretrainmodel.model.transformer import build_model, count_parameters
 from pretrainmodel.observability.cost import estimate_cost
 from pretrainmodel.observability.events import EventLog
 from pretrainmodel.observability.manifest import RunManifest, new_run_id
+from pretrainmodel.training.checkpointing import PeriodicCheckpointer, resume_if_available
 from pretrainmodel.training.loop import build_optimizer, seed_everything, train
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -51,6 +52,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True)
     parser.add_argument("--out-dir", default=None)
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help=(
+            "resume from the newest committed checkpoint. On preemptible instances "
+            "this is how a reclaimed node rejoins without losing the run."
+        ),
+    )
     parser.add_argument(
         "--rehearsal",
         action="store_true",
@@ -105,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
         optimizer = build_optimizer(cfg, model)
 
         run_id = new_run_id(cfg.run.name)
+        ckpt_root = REPO_ROOT / cfg.checkpoint.dir
+        data_hash = manifest_hash(manifest)
         prefix = "rehearsal" if args.rehearsal else "runs"
         out_dir = Path(args.out_dir) if args.out_dir else REPO_ROOT / prefix / run_id
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -118,6 +129,28 @@ def main(argv: list[str] | None = None) -> int:
                 distinct_hosts=topology.distinct_hosts,
                 is_multi_node=topology.is_multi_node,
             )
+            start_step, resume_from = 0, None
+            if args.resume:
+                loaded = resume_if_available(
+                    cfg,
+                    model=model,
+                    optimizer=optimizer,
+                    root=ckpt_root,
+                    data_manifest_hash=data_hash,
+                    events=events,
+                )
+                if loaded is not None:
+                    start_step, resume_from = loaded.step, loaded.loader_state
+
+            checkpointer = PeriodicCheckpointer(
+                cfg,
+                model=model,
+                optimizer=optimizer,
+                root=ckpt_root,
+                data_manifest_hash=data_hash,
+                run_id=run_id,
+                events=events,
+            )
             result = train(
                 cfg,
                 model,
@@ -127,8 +160,11 @@ def main(argv: list[str] | None = None) -> int:
                 events=events,
                 device=device,
                 optimizer=optimizer,
+                start_step=start_step,
+                resume_from=resume_from,
+                on_step=checkpointer,
             )
-            events.emit("run_finished", **result.metrics)
+            events.emit("run_finished", **result.metrics, checkpoints=checkpointer.saved_steps)
 
         coverage = verify_coverage(
             sampler.rank_epoch_ids(0)[: len(result.consumed_ids)], [result.consumed_ids]

@@ -28,7 +28,8 @@ from pretrainmodel.model.transformer import build_model, count_parameters
 from pretrainmodel.observability.cost import estimate_cost
 from pretrainmodel.observability.events import EventLog
 from pretrainmodel.observability.manifest import RunManifest, new_run_id
-from pretrainmodel.training.loop import evaluate, seed_everything, train
+from pretrainmodel.training.checkpointing import PeriodicCheckpointer, resume_if_available
+from pretrainmodel.training.loop import build_optimizer, evaluate, seed_everything, train
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -104,10 +105,49 @@ def cmd_train(args: argparse.Namespace) -> int:
     }
 
     out_dir = REPO_ROOT / "runs" / run_id
+    optimizer = build_optimizer(cfg, model)
+    ckpt_root = REPO_ROOT / cfg.checkpoint.dir
+    data_hash = manifest_hash(manifest)
+
     with EventLog(out_dir / "events-rank0.jsonl", run_id=run_id) as events:
         events.emit("run_started", config=cfg.run.name, params=run.model["parameter_count"])
-        result = train(cfg, model, dataset, sampler, run_id=run_id, events=events)
-        events.emit("run_finished", **result.metrics)
+
+        start_step, resume_from = 0, None
+        if args.resume:
+            loaded = resume_if_available(
+                cfg,
+                model=model,
+                optimizer=optimizer,
+                root=ckpt_root,
+                data_manifest_hash=data_hash,
+                events=events,
+            )
+            if loaded is not None:
+                start_step, resume_from = loaded.step, loaded.loader_state
+                print(f"resumed from step {loaded.step} ({loaded.note})")
+
+        checkpointer = PeriodicCheckpointer(
+            cfg,
+            model=model,
+            optimizer=optimizer,
+            root=ckpt_root,
+            data_manifest_hash=data_hash,
+            run_id=run_id,
+            events=events,
+        )
+        result = train(
+            cfg,
+            model,
+            dataset,
+            sampler,
+            run_id=run_id,
+            events=events,
+            optimizer=optimizer,
+            start_step=start_step,
+            resume_from=resume_from,
+            on_step=checkpointer,
+        )
+        events.emit("run_finished", **result.metrics, checkpoints=checkpointer.saved_steps)
 
     coverage = verify_coverage(
         sampler.rank_epoch_ids(0)[: len(result.consumed_ids)], [result.consumed_ids]
@@ -127,6 +167,7 @@ def cmd_train(args: argparse.Namespace) -> int:
         f"final_loss={result.final_loss:.6f}, stopped={result.stopped_because}"
     )
     print(f"manifest: {out_dir / 'run_manifest.json'}")
+    print(f"checkpoints: {checkpointer.saved_steps or 'none (checkpoint.every_steps = 0)'}")
     return 0 if payload["status"] == "completed" else 1
 
 
@@ -180,6 +221,11 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("train", help="run training")
     p.add_argument("--config", default="configs/local_smoke.toml")
+    p.add_argument(
+        "--resume",
+        action="store_true",
+        help="resume from the newest committed checkpoint under checkpoint.dir",
+    )
     p.set_defaults(func=cmd_train)
 
     p = sub.add_parser("evaluate", help="report masked forecast metrics")

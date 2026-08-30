@@ -89,6 +89,8 @@ def automated_checks() -> list[dict[str, Any]]:
         )
     )
 
+    results.append(checkpoint_capability_check())
+
     for rel in CLOUD_CONFIGS:
         cfg = load_config(REPO_ROOT / rel)
         has_caps = cfg.train.max_steps >= 1 and cfg.train.max_wall_seconds >= 1
@@ -105,9 +107,11 @@ def automated_checks() -> list[dict[str, Any]]:
             _check(
                 f"checkpoint_cadence::{rel}",
                 cfg.checkpoint.every_steps > 0,
-                "Spot instances are preempted without warning. A run with no checkpoint "
-                "cadence loses everything on preemption; with one, the preemption becomes "
-                "a free organic recovery test.",
+                f"every_steps={cfg.checkpoint.every_steps}, keep_last={cfg.checkpoint.keep_last}. "
+                "Spot instances are preempted without warning: with no cadence a preemption "
+                "loses everything; with one it becomes a free organic recovery test. "
+                "NOTE: this only reads the config. Whether anything HONOURS it is proven "
+                "separately by checkpoint_capability_writes_one.",
             )
         )
 
@@ -150,6 +154,83 @@ def automated_checks() -> list[dict[str, Any]]:
         )
     )
     return results
+
+
+def checkpoint_capability_check() -> dict[str, Any]:
+    """Prove a real training run writes a committed checkpoint. Do not infer it.
+
+    This check exists because its absence caused a live false assurance. The
+    preflight previously reported checkpoint_cadence ok=True for both cloud configs
+    while `save_checkpoint` was called from nowhere but the resume *experiment* --
+    so `checkpoint.every_steps` was parsed, validated, reported on, and honoured by
+    nothing. A spot preemption would have destroyed the run and the preflight would
+    have said it was fine.
+
+    Reading a config value proves a config value. The only thing that proves a
+    capability is exercising it, so this runs two real steps and asserts a committed
+    checkpoint lands on disk.
+    """
+    import tempfile
+    from dataclasses import replace
+
+    from pretrainmodel.data.dataset import WindowDataset
+    from pretrainmodel.data.loader import ShardedSampler
+    from pretrainmodel.data.manifest import ShardManifest
+    from pretrainmodel.data.shard import build_index
+    from pretrainmodel.distributed.checkpoint import latest_committed, read_marker
+    from pretrainmodel.model.transformer import build_model
+    from pretrainmodel.training.checkpointing import PeriodicCheckpointer
+    from pretrainmodel.training.loop import build_optimizer, seed_everything, train
+
+    base = load_config(REPO_ROOT / "configs/local_smoke.toml")
+    root = REPO_ROOT / base.data.root
+    if not (root / "shards.json").is_file():
+        return _check(
+            "checkpoint_capability_writes_one",
+            False,
+            f"no fixture at {root}; run: uv run pretrainmodel make-fixture",
+        )
+
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            cfg = replace(
+                base,
+                train=replace(base.train, max_steps=2, log_every=1),
+                checkpoint=replace(base.checkpoint, dir=td, every_steps=1),
+            )
+            manifest = ShardManifest.read(root / "shards.json")
+            index = build_index(manifest)
+            dataset = WindowDataset(root, manifest, index)
+            sampler = ShardedSampler(
+                index.sample_ids,
+                seed=cfg.run.seed,
+                world_size=1,
+                rank=0,
+                dataset_version=manifest.dataset_version,
+            )
+            seed_everything(cfg.run.seed)
+            model = build_model(cfg)
+            optimizer = build_optimizer(cfg, model)
+            ckpt = PeriodicCheckpointer(cfg, model=model, optimizer=optimizer, root=td)
+            train(cfg, model, dataset, sampler, optimizer=optimizer, on_step=ckpt)
+
+            latest = latest_committed(td)
+            marker = read_marker(latest) if latest else None
+            ok = latest is not None and marker is not None
+            detail = (
+                f"a real 2-step run committed {len(ckpt.saved_steps)} checkpoint(s) "
+                f"{ckpt.saved_steps}; latest marker step={marker.step}"
+                if ok and marker
+                else "a real training run produced NO committed checkpoint: "
+                "checkpoint.every_steps is not honoured by the training path"
+            )
+            return _check("checkpoint_capability_writes_one", ok, detail)
+    except Exception as exc:
+        return _check(
+            "checkpoint_capability_writes_one",
+            False,
+            f"checkpoint capability probe raised {type(exc).__name__}: {exc}",
+        )
 
 
 def credential_scan() -> list[str]:

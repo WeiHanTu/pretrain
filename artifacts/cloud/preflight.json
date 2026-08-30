@@ -6,13 +6,18 @@
       "ok": false
     },
     {
+      "check": "checkpoint_capability_writes_one",
+      "detail": "a real 2-step run committed 2 checkpoint(s) [1, 2]; latest marker step=2",
+      "ok": true
+    },
+    {
       "check": "caps_present::configs/single_l4.toml",
       "detail": "max_steps=2000, max_wall_seconds=7200, checkpoint_every=250",
       "ok": true
     },
     {
       "check": "checkpoint_cadence::configs/single_l4.toml",
-      "detail": "Spot instances are preempted without warning. A run with no checkpoint cadence loses everything on preemption; with one, the preemption becomes a free organic recovery test.",
+      "detail": "every_steps=250, keep_last=3. Spot instances are preempted without warning: with no cadence a preemption loses everything; with one it becomes a free organic recovery test. NOTE: this only reads the config. Whether anything HONOURS it is proven separately by checkpoint_capability_writes_one.",
       "ok": true
     },
     {
@@ -22,7 +27,7 @@
     },
     {
       "check": "checkpoint_cadence::configs/two_node_l4.toml",
-      "detail": "Spot instances are preempted without warning. A run with no checkpoint cadence loses everything on preemption; with one, the preemption becomes a free organic recovery test.",
+      "detail": "every_steps=100, keep_last=3. Spot instances are preempted without warning: with no cadence a preemption loses everything; with one it becomes a free organic recovery test. NOTE: this only reads the config. Whether anything HONOURS it is proven separately by checkpoint_capability_writes_one.",
       "ok": true
     },
     {
