@@ -1,0 +1,71 @@
+gate:        phase-b
+captured_at: 2026-08-30T11:29:49Z
+git_commit:  57a341b26f80bffc584792861a7a7eea9e682c30
+git_dirty:   false
+dirty_note:  tree state observed before this file was written
+python:      3.12.13
+torch:       2.13.0+cu130
+platform:    Linux aarch64
+
+$ uv sync --locked
+Resolved 48 packages in 0.45ms
+Uninstalled 1 package in 5ms
+Installed 1 package in 7.10s
+ ~ nvidia-cusparselt-cu13==0.8.1
+
+$ uv run ruff check .
+Uninstalled 1 package in 17ms
+Installed 1 package in 7.04s
+N818 Exception name `_SimulatedInterrupt` should be named with an Error suffix
+  --> src/pretrainmodel/training/resume_experiment.py:49:7
+   |
+49 | class _SimulatedInterrupt(RuntimeError):
+   |       ^^^^^^^^^^^^^^^^^^^
+50 |     """Raised to stop the interrupt phase at its checkpoint step.
+   |
+
+F821 Undefined name `Any`
+   --> tests/unit/test_evidence_schemas.py:161:35
+    |
+161 | def _exact_payload() -> dict[str, Any]:
+    |                                   ^^^
+162 |     data: dict[str, Any] = json.loads(EXACT_PATH.read_text())
+163 |     return data
+    |
+
+F821 Undefined name `Any`
+   --> tests/unit/test_evidence_schemas.py:162:21
+    |
+161 | def _exact_payload() -> dict[str, Any]:
+162 |     data: dict[str, Any] = json.loads(EXACT_PATH.read_text())
+    |                     ^^^
+163 |     return data
+    |
+
+Found 3 errors.
+[FAILED: uv run ruff check .]
+
+$ uv run ruff format --check .
+Uninstalled 1 package in 17ms
+Installed 1 package in 6.92s
+59 files already formatted
+
+$ uv run mypy src
+Uninstalled 1 package in 17ms
+Installed 1 package in 6.97s
+Success: no issues found in 29 source files
+
+$ uv run pytest -q
+Uninstalled 1 package in 19ms
+Installed 1 package in 6.97s
+........................................................................ [ 34%]
+........................................................................ [ 68%]
+.................................................................        [100%]
+209 passed in 26.14s
+
+$ uv run python scripts/check_repo_hygiene.py
+Uninstalled 1 package in 6ms
+Installed 1 package in 7.13s
+Repository hygiene check passed (91 tracked files).
+
+result: FAIL
