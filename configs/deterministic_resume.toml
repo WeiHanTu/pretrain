@@ -1,5 +1,13 @@
 # Deterministic same-world-size resume oracle (spec.md 8.1).
 #
+# PLANNED: never executed. Save/resume is not implemented (plan.md B2-B3), so
+# this config has produced no artifact and proves nothing yet.
+#
+# Model size: 138,700 parameters, far below the 20M-50M band in spec.md 5.1.
+# Deliberate -- this oracle tests the RESUME MECHANISM, not the model, and a
+# small model makes the bit-exactness comparison fast and cheap to repeat. No
+# model-quality claim may be drawn from a run of this config.
+#
 # Every setting here is load-bearing for the *exact equality* claim:
 #   - fp32                      : bf16 reductions are not associative
 #   - deterministic_algorithms  : forbids nondeterministic kernel selection

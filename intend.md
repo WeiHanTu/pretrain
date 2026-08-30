@@ -1,6 +1,6 @@
 # Intent: Multi-node Traffic Pretraining Incident Lab
 
-**Status:** Approved design intent; implementation not started  
+**Status:** Approved design intent; Phase A implemented and verified, Phase B-D not started  
 **Last updated:** 2026-08-30
 
 ## 1. Why this project exists

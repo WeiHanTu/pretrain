@@ -1,5 +1,10 @@
 # Control run for the statistical oracle (spec.md 8.2).
 #
+# Model size: 138,700 parameters, far below the 20M-50M band in spec.md 5.1.
+# Deliberate -- the band characterises SEED VARIANCE of the training loop, not
+# model quality, and three control runs must be cheap enough to repeat whenever
+# the config changes. No model-quality claim may be drawn from these runs.
+#
 # Three uninterrupted runs of this config, varying only run.seed, define the
 # variance band that any BF16 / async / changed-world-size resume is later judged
 # against.  The band MUST be frozen before those experiments are run, otherwise

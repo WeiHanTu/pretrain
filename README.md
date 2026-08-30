@@ -1,8 +1,11 @@
 # Multi-node Traffic Pretraining Incident Lab
 
-A compact spatiotemporal Transformer pretrained over traffic-flow data, built to
+A compact spatiotemporal Transformer **for** traffic-flow forecasting, built to
 produce **evidence about distributed-training correctness and recovery** rather
 than a competitive forecasting model.
+
+**No traffic data has been trained on yet.** Every artifact in this repository was
+produced from synthetic fixtures on CPU. Real-data training is Phase B onward.
 
 The primary deliverable is an evidence-backed incident report. The model and
 dataset exist to make distributed failures real and reproducible.
@@ -35,7 +38,7 @@ a named artifact under `artifacts/` or `reports/`.
 | Phase | Scope | Status |
 |---|---|---|
 | Track 0 | Compute access requests (NRP / ACCESS / GCP) | Not started |
-| A1 | Repo bootstrap, config schema, CI | **Complete** — `artifacts/gates/phase-a1.txt` |
+| A1 | Repo bootstrap, config schema, CI | **Complete except license choice** — `artifacts/gates/phase-a1.txt` |
 | A2 | Data layer, rank-coverage invariant, negative tests | **Complete** — `artifacts/coverage/`, `reports/incidents/I-002`, `I-003` |
 | A3 | Model, training loop, run manifest | **Complete** — `artifacts/gates/tiny-overfit.json` |
 | A4 | Seed-variance oracle | **Complete** — `artifacts/oracles/seed-band.json` |
@@ -81,9 +84,14 @@ uv run pytest -q
 ## Data
 
 The repository does **not** redistribute any dataset. LargeST is the intended
-primary source; it is supplied separately by the user and preprocessing records
-source URL, version, file hashes and citation metadata into a verified manifest.
-Synthetic fixtures are used for tests only and never appear in model-quality claims.
+primary source, supplied separately by the user.
+
+*Planned, not implemented.* `SourceManifest` defines the provenance record
+(source URL, version, file hashes, units, timezone, graph directedness) and can
+verify it, but **no LargeST ingestion or preprocessing exists yet** — nothing in
+`src/` constructs a `SourceManifest`. The only dataset any code path reads today is
+the synthetic fixture, which is for tests only and never appears in a
+model-quality claim.
 
 See [`intend.md`](intend.md) §4 for the dataset rationale and the conditions under
 which a conservation metric would be defensible (it is out of scope until directed

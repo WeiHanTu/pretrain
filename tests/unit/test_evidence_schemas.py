@@ -111,3 +111,27 @@ def test_committed_seed_band_discloses_its_rule_and_limits() -> None:
     assert "(n-1)/(n+1)" in payload["limitations"]
     assert "never bit-exactness" in payload["limitations"]
     assert len(payload["config_hash"]) == 64
+
+
+@pytest.mark.skipif(not BAND_PATH.exists(), reason="seed band not yet generated")
+def test_seed_band_control_runs_are_traceable() -> None:
+    """plan.md A4 requires *traceable* control runs.
+
+    Run manifests live under runs/, which is gitignored, so a copy of each control
+    run's manifest is committed beside the band. Without this a reviewer cloning the
+    repo cannot resolve the run IDs the band cites.
+    """
+    import re
+
+    payload = json.loads(BAND_PATH.read_text())
+    cited = re.findall(r"[A-Za-z0-9_]+-\d{8}T\d{6}Z-[0-9a-f]{8}", payload.get("notes", ""))
+    assert len(cited) == len(payload["seeds"]), (
+        f"band cites {len(cited)} run ids for {len(payload['seeds'])} seeds"
+    )
+    control_dir = BAND_PATH.parent / "control-runs"
+    for run_id in cited:
+        manifest = control_dir / f"{run_id}.json"
+        assert manifest.is_file(), f"control run {run_id} is cited but not committed"
+        data = json.loads(manifest.read_text())
+        assert data["config_hash"]
+        assert data["formal"] is True, "a control run backing an oracle must be formal"

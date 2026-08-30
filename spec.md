@@ -1,6 +1,6 @@
 # Specification: Multi-node Traffic Pretraining Incident Lab
 
-**Implementation status:** Not started  
+**Implementation status:** Sections 1-5, 10 and 12 implemented for the local CPU path (Phase A). Sections 6-9 (FSDP2, DCP checkpointing, resume oracles, incident injection beyond I-002/I-003) and 11 (cloud) are NOT implemented.  
 **Target:** Three-week defensible minimum, followed by optional extensions  
 **Normative language:** MUST/SHALL are acceptance requirements; SHOULD is recommended; MAY is optional.
 

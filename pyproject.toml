@@ -1,7 +1,7 @@
 [project]
 name = "pretrainmodel"
 version = "0.1.0"
-description = "Multi-node traffic pretraining incident lab"
+description = "Portfolio-scale distributed-training correctness and recovery lab"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

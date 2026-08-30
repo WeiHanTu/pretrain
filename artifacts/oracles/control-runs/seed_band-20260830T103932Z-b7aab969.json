@@ -1,0 +1,114 @@
+{
+  "artifacts": [],
+  "config": {
+    "checkpoint": {
+      "dir": "checkpoints/seed_band",
+      "every_steps": 50,
+      "keep_last": 3
+    },
+    "cost": {
+      "rate_usd_per_gpu_hour": 0.0,
+      "sku": "local-cpu"
+    },
+    "data": {
+      "context_steps": 12,
+      "drop_last": true,
+      "horizon_steps": 12,
+      "num_features": 1,
+      "num_sensors": 32,
+      "num_workers": 0,
+      "root": "data/processed/synthetic/v1",
+      "shuffle": true
+    },
+    "determinism": {
+      "async_checkpoint": false,
+      "deterministic_algorithms": false
+    },
+    "distributed": {
+      "backend": "gloo",
+      "expect_distinct_hosts": false,
+      "expect_world_size": 0
+    },
+    "model": {
+      "d_model": 64,
+      "dropout": 0.0,
+      "ffn_mult": 4,
+      "max_sensors": 64,
+      "num_heads": 4,
+      "num_layers": 2,
+      "time_features": true
+    },
+    "optim": {
+      "betas": [
+        0.9,
+        0.95
+      ],
+      "grad_clip": 1.0,
+      "lr": 0.001,
+      "min_lr_ratio": 0.1,
+      "total_steps": 100,
+      "warmup_steps": 10,
+      "weight_decay": 0.01
+    },
+    "run": {
+      "formal": true,
+      "name": "seed_band",
+      "seed": 2
+    },
+    "train": {
+      "dtype": "fp32",
+      "eval_every": 0,
+      "grad_accum_steps": 1,
+      "log_every": 1,
+      "max_steps": 100,
+      "max_wall_seconds": 900,
+      "micro_batch_size": 4
+    }
+  },
+  "config_hash": "657706657e3729c584cec192c0ccef879ab313e14f8a3afa393a40f4f2f76bd7",
+  "data_manifest_hash": "e33014cceef4a04c21dcbeb311335d1da7a009ff955b8d3ba0a1cfca92b81978",
+  "duration_seconds": 0.755875,
+  "ended_at": "2026-08-30T10:39:33+00:00",
+  "formal": true,
+  "git": {
+    "branch": "main",
+    "commit": "59993cb4a12420894e41132b88787065b15b832d",
+    "dirty": false
+  },
+  "hardware": {},
+  "metrics": {
+    "final_loss": 0.14279131591320038,
+    "samples_consumed": 244,
+    "samples_per_second": 325.1185362009283,
+    "step_time_p50": 0.011372334003681317,
+    "step_time_p95": 0.012777583993738517,
+    "steps_completed": 61,
+    "stopped_because": "epoch_exhausted"
+  },
+  "run_id": "seed_band-20260830T103932Z-b7aab969",
+  "run_name": "seed_band",
+  "schema_version": 1,
+  "software": {
+    "cuda": "13.0",
+    "nccl": null,
+    "platform": "Linux-aarch64",
+    "python": "3.12.13",
+    "torch": "2.13.0+cu130"
+  },
+  "started_at": "2026-08-30T10:39:32+00:00",
+  "status": "completed",
+  "topology": {
+    "backend": "none",
+    "device": "cpu",
+    "distinct_hosts": 1,
+    "global_batch_size": 4,
+    "gpus_per_node": 0,
+    "grad_accum_steps": 1,
+    "hosts": [
+      "c857d09db23e"
+    ],
+    "node_count": 1,
+    "rendezvous": null,
+    "world_size": 1
+  }
+}
