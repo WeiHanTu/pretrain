@@ -1,6 +1,6 @@
 # Implementation and Verification Plan
 
-**Overall status:** Phase A in progress (A1, A2 complete with captured evidence)  
+**Overall status:** Phase A complete (A1-A4 verified with captured evidence). Phase B not started.  
 **Planning principle:** Finish the three-week defensible minimum before adding model novelty.
 
 ## Status vocabulary
@@ -69,11 +69,11 @@ Evidence:
 
 ### A3. Model and training loop
 
-- [ ] Implement the minimum spatiotemporal Transformer.
-- [ ] Enforce shape/dtype/device and missing-mask contracts.
-- [ ] Implement single-process train/evaluate commands.
-- [ ] Pass a tiny-batch overfit test.
-- [ ] Emit resolved config, parameter count and run manifest.
+- [x] Implement the minimum spatiotemporal Transformer.
+- [x] Enforce shape/dtype/device and missing-mask contracts.
+- [x] Implement single-process train/evaluate commands.
+- [x] Pass a tiny-batch overfit test.
+- [x] Emit resolved config, parameter count and run manifest.
 
 Acceptance:
 
@@ -84,9 +84,9 @@ Evidence: `artifacts/gates/tiny-overfit.json`.
 
 ### A4. Seed-variance oracle
 
-- [ ] Choose and document the comparison statistic and interval rule.
-- [ ] Run three uninterrupted control seeds.
-- [ ] Freeze the statistical pass rule before any changed-world-size resume.
+- [x] Choose and document the comparison statistic and interval rule.
+- [x] Run three uninterrupted control seeds.
+- [x] Freeze the statistical pass rule before any changed-world-size resume.
 
 Acceptance:
 

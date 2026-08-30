@@ -37,9 +37,9 @@ a named artifact under `artifacts/` or `reports/`.
 | Track 0 | Compute access requests (NRP / ACCESS / GCP) | Not started |
 | A1 | Repo bootstrap, config schema, CI | **Complete** — `artifacts/gates/phase-a1.txt` |
 | A2 | Data layer, rank-coverage invariant, negative tests | **Complete** — `artifacts/coverage/`, `reports/incidents/I-002`, `I-003` |
-| A3 | Model, training loop, run manifest | In progress |
-| A4 | Seed-variance oracle | Not started |
-| B | GPU FSDP2, DCP checkpoint + reshard | Not started |
+| A3 | Model, training loop, run manifest | **Complete** — `artifacts/gates/tiny-overfit.json` |
+| A4 | Seed-variance oracle | **Complete** — `artifacts/oracles/seed-band.json` |
+| B | GPU FSDP2, DCP checkpoint + reshard | Next |
 | C | Real two-host execution, failure injection, scaling | Not started |
 | D | Portfolio release | Not started |
 

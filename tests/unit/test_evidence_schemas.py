@@ -79,3 +79,35 @@ def test_no_artifact_claims_multi_node_evidence() -> None:
         notes = str(payload.get("notes", ""))
         assert "distinct host(s)" in notes, f"{path.name} does not record host count"
         assert "NOT multi-node evidence" in notes, f"{path.name} lacks its scope disclaimer"
+
+
+# --------------------------------------------------------------------------- #
+# Seed-variance band
+# --------------------------------------------------------------------------- #
+
+BAND_PATH = REPO_ROOT / "artifacts" / "oracles" / "seed-band.json"
+
+
+@pytest.mark.skipif(not BAND_PATH.exists(), reason="seed band not yet generated")
+def test_committed_seed_band_is_usable() -> None:
+    """The frozen band must load and must still contain its own control runs."""
+    from pretrainmodel.training.oracle import SeedBand, evaluate_against_band
+
+    band = SeedBand.from_dict(json.loads(BAND_PATH.read_text()))
+    assert len(band.seeds) >= 3, "a band needs at least 3 control seeds"
+    assert band.num_steps > 0
+    for seed, losses in band.control_losses.items():
+        result = evaluate_against_band(band, losses, config_hash=band.config_hash)
+        assert result.passed, f"control seed {seed} falls outside its own band"
+
+
+@pytest.mark.skipif(not BAND_PATH.exists(), reason="seed band not yet generated")
+def test_committed_seed_band_discloses_its_rule_and_limits() -> None:
+    """The pass rule and the small-sample caveat must be in the artifact itself."""
+    payload = json.loads(BAND_PATH.read_text())
+    assert payload["oracle"] == "seed_variance_band"
+    assert payload["pass_rule"]
+    assert payload["interval_rule"]
+    assert "(n-1)/(n+1)" in payload["limitations"]
+    assert "never bit-exactness" in payload["limitations"]
+    assert len(payload["config_hash"]) == 64
