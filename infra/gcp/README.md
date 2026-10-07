@@ -14,8 +14,8 @@ Run this once per terminal session. Everything below depends on it.
 
 ```bash
 export PROJECT=project-3fa48bd6-2eaf-4084-85a
-export ZONE=us-central1-a
-export REGION=us-central1
+export ZONE=us-west4-c
+export REGION=us-west4
 gcloud config set project "$PROJECT"
 gcloud auth login          # skip if already authenticated
 ```

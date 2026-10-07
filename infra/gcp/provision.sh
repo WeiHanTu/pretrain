@@ -26,7 +26,7 @@
 set -euo pipefail
 
 PROJECT="${PROJECT:?set PROJECT to your GCP project id}"
-ZONE="${ZONE:-us-central1-a}"
+ZONE="${ZONE:-us-west4-c}"
 MACHINE="${MACHINE:-g2-standard-4}"      # 1x L4
 COUNT="${COUNT:-2}"
 PREFIX="${PREFIX:-ptm-node}"
